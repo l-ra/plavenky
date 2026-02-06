@@ -399,6 +399,95 @@
             color: var(--text-gray);
             line-height: 1;
         }
+
+        /* Help/Markdown content styles */
+        #help-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        #help-content h1 {
+            font-size: 32px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            color: #1f2937;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        #help-content h2 {
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+
+        #help-content h3 {
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        #help-content p {
+            margin-bottom: 15px;
+            color: #4b5563;
+        }
+
+        #help-content ul, #help-content ol {
+            margin-bottom: 15px;
+            padding-left: 30px;
+        }
+
+        #help-content li {
+            margin-bottom: 8px;
+            color: #4b5563;
+        }
+
+        #help-content code {
+            background: var(--bg-gray);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #dc2626;
+        }
+
+        #help-content pre {
+            background: var(--bg-gray);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        #help-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        #help-content strong {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        #help-content a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        #help-content a:hover {
+            text-decoration: underline;
+        }
+
+        #help-content blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 20px;
+            margin: 15px 0;
+            color: #6b7280;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -419,6 +508,7 @@
             <button class="tab-btn" data-tab="employees">Správa zaměstnanců</button>
             <button class="tab-btn" data-tab="export">Export</button>
             <button class="tab-btn" data-tab="data-management">Správa dat</button>
+            <button class="tab-btn" data-tab="help">Nápověda</button>
         </div>
 
         <!-- Výpůjčky -->
@@ -643,7 +733,143 @@
                 <div id="months-overview"></div>
             </div>
         </div>
+
+        <!-- Nápověda -->
+        <div class="tab-content" id="tab-help">
+            <div class="section-header">
+                <h2>Nápověda</h2>
+            </div>
+            <div id="help-content" style="line-height: 1.8;">
+                <p style="text-align: center; color: var(--text-gray);">Načítání nápovědy...</p>
+            </div>
+        </div>
     </div>
+
+    <!-- Inline README for fallback -->
+    <template id="readme-template">
+# Evidence plaveckých čipů
+
+Jednoduchá webová aplikace pro evidenci výpůjček plaveckých čipů. Aplikace běží kompletně v prohlížeči, ukládá data lokálně a funguje i bez webserveru.
+
+## Spuštění
+
+Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlížeči (Chrome, Firefox, Safari, Edge).
+
+**Poznámka:** Data jsou uložena v localStorage prohlížeče, takže zůstanou zachována i po zavření stránky. Pokud smažete data prohlížeče nebo použijete jiný prohlížeč, data nebudou dostupná.
+
+## Funkce aplikace
+
+### 1. Správa čipů
+- Přidávání čipů s jedinečným identifikátorem
+- Odebírání čipů (pokud nejsou vypůjčeny)
+- Přehled všech dostupných čipů
+- **Import z XLSX**: Import seznamu čipů ze souboru Excel
+  - Sloupec: "Identifikátor"
+- **Export do XLSX**: Export seznamu čipů do souboru Excel
+
+### 2. Správa zaměstnanců
+- Přidávání zaměstnanců (jméno + zaměstnanecké číslo + odbor)
+- Odebírání zaměstnanců (pokud nemají výpůjčky)
+- **Import z XLSX**: Import seznamu zaměstnanců ze souboru Excel
+  - Sloupce: "Jméno", "Zaměstnanecké číslo" a "Odbor"
+- **Export do XLSX**: Export seznamu zaměstnanců do souboru Excel
+
+### 3. Nová výpůjčka
+- **Výběr zaměstnance**: Našeptávač při psaní jména nebo čísla zaměstnance
+- **Datum začátku**: Předvyplněno na aktuální datum
+- **Výběr čipů**: Přidávání čipů pomocí našeptávače
+  - Zobrazují se pouze čipy dostupné v daném termínu
+  - Možnost přidat více čipů najednou
+- **Datum konce** (volitelné): Pokud není zadáno, výpůjčka zůstává aktivní
+
+### 4. Seznam výpůjček
+- Přehled všech výpůjček s informacemi:
+  - Zaměstnanec (jméno a číslo)
+  - Odbor zaměstnance
+  - Seznam vypůjčených čipů
+  - Datum začátku a konce
+  - Stav (Aktivní/Ukončeno)
+- **Filtry**: Filtrování podle zaměstnance, odboru, čipu nebo stavu
+- **Import z XLSX**: Import seznamu výpůjček ze souboru Excel
+  - Sloupce: "Zaměstnanecké číslo", "Jméno zaměstnance", "Odbor", "Čipy", "Datum začátku", "Datum konce"
+- **Export do XLSX**: Export všech výpůjček do souboru Excel
+- **Ukončení výpůjčky**: Tlačítko pro rychlé ukončení aktivní výpůjčky
+- **Úprava výpůjčky**: Změna zaměstnance, termínů nebo čipů
+- **Smazání výpůjčky**: Kompletní odstranění záznamu
+
+### 5. Export výpůjček
+- Export výpůjček za vybraný měsíc do XLSX
+- Pro každý čip a každý den výpůjčky vytvoří řádek s údaji:
+  - Číslo čipu
+  - Datum
+  - Číslo zaměstnance
+  - Jméno zaměstnance
+  - Odbor
+
+### 6. Správa dat
+- **Export všech dat**: Exportuje všechna data (čipy, zaměstnance, výpůjčky) do jednoho JSON souboru
+  - Soubor obsahuje časovou značku v názvu: `evidence-plavenek-YYYY-MM-DD-HHMM.json`
+- **Import dat**: Importuje data ze záložního JSON souboru
+  - Přepíše všechna současná data
+  - Vyžaduje potvrzení
+- **Smazání všech dat**: Kompletní vymazání všech dat z aplikace
+  - Vyžaduje zadání potvrzovacího slova "SMAZAT"
+- **Statistiky**: Zobrazuje aktuální počty čipů, zaměstnanců a výpůjček
+- **Správa výpůjček podle měsíců**:
+  - Přehled všech měsíců, pro které existují výpůjčky
+  - Zobrazení počtu výpůjček v každém měsíci
+  - Možnost smazat všechny výpůjčky z konkrétního měsíce
+  - Měsíce jsou seřazeny od nejnovějších
+
+## Technické informace
+
+- **Frontend**: Pure HTML, CSS a JavaScript (žádné externí závislosti kromě SheetJS)
+- **Úložiště**: localStorage (data v prohlížeči)
+- **XLSX podpora**: SheetJS (načítáno z CDN)
+- **UI dialogy**: Vlastní modální dialogy místo nativních alert/confirm/prompt
+- **Kompatibilita**: Moderní prohlížeče (Chrome, Firefox, Safari, Edge)
+
+## Tipy pro použití
+
+1. **⚠️ DŮLEŽITÉ - Pravidelné zálohování**: Minimálně jednou týdně exportujte všechna data na záložce "Správa dat"
+   - Export vytvoří JSON soubor se všemi daty, který si uložte na bezpečné místo
+   - V případě problémů s prohlížečem můžete všechna data obnovit
+   
+2. **Import čipů**: Připravte si Excel soubor se sloupcem "Identifikátor" pro hromadný import čipů
+
+3. **Import zaměstnanců**: Připravte si Excel soubor se sloupci "Jméno", "Zaměstnanecké číslo" a "Odbor" pro hromadný import
+
+4. **Import výpůjček**: Připravte si Excel soubor se sloupci "Zaměstnanecké číslo", "Jméno zaměstnance", "Odbor", "Čipy" (oddělené čárkou), "Datum začátku" a "Datum konce"
+   - Před importem výpůjček musí existovat příslušní zaměstnanci a čipy v systému
+   
+5. **Kontrola dostupnosti**: Při výběru čipů se automaticky zobrazují pouze ty, které nejsou v daném termínu vypůjčené
+
+6. **Filtry**: Využijte filtry pro rychlé nalezení konkrétních výpůjček podle zaměstnance, odboru nebo čipu
+
+7. **Úprava výpůjček**: Můžete kdykoliv upravit termíny, přidat/odebrat čipy nebo nastavit datum vrácení
+
+8. **Migrace na jiné zařízení**: 
+   - Na původním zařízení: Exportujte všechna data (Správa dat → Export všech dat)
+   - Na novém zařízení: Importujte JSON soubor (Správa dat → Import dat)
+
+## Správa a ochrana dat
+
+### Úložiště dat
+- Data jsou uložena **pouze na vašem počítači** v trvalé paměti prohlížeče (localStorage)
+- Data **nejsou** posílána na internet ani žádný server
+- Data nejsou synchronizována mezi různými zařízeními nebo prohlížeči
+
+### Zálohování
+- **Doporučujeme pravidelně exportovat všechna data** na záložce "Správa dat"
+- Export vytvoří JSON soubor se všemi daty, který můžete uložit jako zálohu
+- V případě problémů můžete data kdykoli obnovit importem
+
+### Omezení
+- Při mazání dat prohlížeče (vymazání cookies/localStorage) dojde ke ztrátě všech záznamů
+- Aplikace vyžaduje povolený JavaScript
+- Pro import/export XLSX je potřeba připojení k internetu (kvůli načtení knihovny SheetJS z CDN)
+- Export/import JSON funguje bez připojení k internetu
+    </template>
 
     <!-- Edit Borrowing Modal -->
     <div class="modal" id="edit-modal">
@@ -744,6 +970,9 @@
 
     <!-- Load SheetJS library for XLSX support -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Load marked.js library for Markdown support -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <script>
         // Custom Dialog System
@@ -929,6 +1158,11 @@
                     if (tabId === 'data-management') {
                         if (typeof updateDataStats === 'function') updateDataStats();
                         if (typeof updateMonthsOverview === 'function') updateMonthsOverview();
+                    }
+                    
+                    // Load help content when switching to help tab
+                    if (tabId === 'help') {
+                        if (typeof loadHelpContent === 'function') loadHelpContent();
                     }
                 });
             });
@@ -2372,6 +2606,59 @@
             updateMonthsOverview();
             
             await CustomDialog.alert('Všechna data byla smazána.');
+        }
+
+        // Help/Documentation
+        let helpContentLoaded = false;
+        
+        async function loadHelpContent() {
+            if (helpContentLoaded) return;
+            
+            const container = document.getElementById('help-content');
+            
+            // Configure marked options
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+            
+            try {
+                // Try to fetch README.md from file
+                const response = await fetch('README.md');
+                if (!response.ok) {
+                    throw new Error('README.md not found');
+                }
+                
+                const markdown = await response.text();
+                const html = marked.parse(markdown);
+                container.innerHTML = html;
+                helpContentLoaded = true;
+            } catch (error) {
+                console.log('Načítání README.md selhalo, používám inline verzi');
+                
+                // Fallback to inline README from template
+                try {
+                    const template = document.getElementById('readme-template');
+                    if (template) {
+                        const markdown = template.innerHTML.trim();
+                        const html = marked.parse(markdown);
+                        container.innerHTML = html;
+                        helpContentLoaded = true;
+                    } else {
+                        throw new Error('Template not found');
+                    }
+                } catch (fallbackError) {
+                    console.error('Error loading help:', fallbackError);
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            <h3 style="color: var(--danger-color); margin-bottom: 10px;">⚠️ Chyba při načítání nápovědy</h3>
+                            <p style="color: var(--text-gray);">
+                                Nápovědu se nepodařilo načíst. Zkontrolujte konzoli prohlížeče pro více informací.
+                            </p>
+                        </div>
+                    `;
+                }
+            }
         }
     </script>
 </body>

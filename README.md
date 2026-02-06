@@ -72,11 +72,17 @@ Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlíž
   - Možnost smazat všechny výpůjčky z konkrétního měsíce
   - Měsíce jsou seřazeny od nejnovějších
 
+### 7. Nápověda
+- Zobrazuje celou dokumentaci aplikace přímo v prohlížeči
+- Formátovaný obsah README.md v přehledné podobě
+- Funguje i offline (používá inline fallback)
+
 ## Technické informace
 
-- **Frontend**: Pure HTML, CSS a JavaScript (žádné externí závislosti kromě SheetJS)
+- **Frontend**: Pure HTML, CSS a JavaScript
 - **Úložiště**: localStorage (data v prohlížeči)
 - **XLSX podpora**: SheetJS (načítáno z CDN)
+- **Markdown renderer**: marked.js (načítáno z CDN)
 - **UI dialogy**: Vlastní modální dialogy místo nativních alert/confirm/prompt
 - **Kompatibilita**: Moderní prohlížeče (Chrome, Firefox, Safari, Edge)
 
