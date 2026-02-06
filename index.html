@@ -1,0 +1,2378 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evidence plaveckých čipů</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger-color: #dc2626;
+            --danger-hover: #b91c1c;
+            --success-color: #16a34a;
+            --border-color: #e5e7eb;
+            --bg-gray: #f9fafb;
+            --text-gray: #6b7280;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: #f3f4f6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            padding: 20px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary-color);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="month"],
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-gray);
+            font-weight: 600;
+            color: #374151;
+        }
+
+        tr:hover {
+            background: var(--bg-gray);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .autocomplete-suggestion {
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .autocomplete-suggestion:hover {
+            background: var(--bg-gray);
+        }
+
+        .chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .chip-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .chip-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-gray);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 22px;
+            color: #1f2937;
+        }
+
+        h3 {
+            font-size: 18px;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .filter-section {
+            background: var(--bg-gray);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-returned {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                width: 100%;
+            }
+            
+            #tab-data-management > div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            #tab-data-management > div[style*="grid-template-columns: repeat(3, 1fr)"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--text-gray);
+            line-height: 1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🏊 Evidence plaveckých čipů</h1>
+            <p style="text-align: center; margin-top: 10px; color: #6b7280; font-size: 14px;">
+                Data jsou uložena pouze na vašem počítači v trvalé paměti prohlížeče. Data můžete zálohovat na záložce Správa dat.
+            </p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="borrowings">Výpůjčky</button>
+            <button class="tab-btn" data-tab="new-borrowing">Nová výpůjčka</button>
+            <button class="tab-btn" data-tab="chips">Správa čipů</button>
+            <button class="tab-btn" data-tab="employees">Správa zaměstnanců</button>
+            <button class="tab-btn" data-tab="export">Export</button>
+            <button class="tab-btn" data-tab="data-management">Správa dat</button>
+        </div>
+
+        <!-- Výpůjčky -->
+        <div class="tab-content active" id="tab-borrowings">
+            <div class="section-header">
+                <h2>Seznam výpůjček</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="import-borrowings-btn">Importovat XLSX</button>
+                    <input type="file" id="import-borrowings" accept=".xlsx" style="display: none;">
+                    <button class="btn btn-success" id="export-borrowings-list">Exportovat XLSX</button>
+                </div>
+            </div>
+            
+            <!-- Filtry -->
+            <div class="filter-section">
+                <h3 style="margin-bottom: 15px;">Filtry</h3>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="filter-employee">Zaměstnanec</label>
+                        <input type="text" id="filter-employee" placeholder="Jméno nebo číslo zaměstnance">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="filter-department">Odbor</label>
+                        <input type="text" id="filter-department" placeholder="Název odboru">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-top: 20px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="filter-chip">Čip</label>
+                        <input type="text" id="filter-chip" placeholder="Identifikátor čipu">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="filter-status">Stav</label>
+                        <select id="filter-status">
+                            <option value="all">Všechny</option>
+                            <option value="active">Aktivní</option>
+                            <option value="ended">Ukončené</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" id="clear-filters" style="width: 100%;">Vymazat filtry</button>
+                </div>
+            </div>
+            
+            <div id="borrowings-list"></div>
+        </div>
+
+        <!-- Nová výpůjčka -->
+        <div class="tab-content" id="tab-new-borrowing">
+            <h2>Nová výpůjčka</h2>
+            <form id="new-borrowing-form">
+                <div class="form-group">
+                    <label for="employee-search">Zaměstnanec *</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="employee-search" placeholder="Začněte psát jméno nebo číslo zaměstnance..." required autocomplete="off">
+                        <div class="autocomplete-suggestions" id="employee-suggestions"></div>
+                    </div>
+                    <input type="hidden" id="selected-employee-id">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start-date">Datum začátku *</label>
+                        <input type="date" id="start-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end-date">Datum konce (volitelné)</label>
+                        <input type="date" id="end-date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="chip-search">Přidat čip</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="chip-search" placeholder="Začněte psát identifikátor čipu..." autocomplete="off">
+                        <div class="autocomplete-suggestions" id="chip-suggestions"></div>
+                    </div>
+                    <div class="chip-list" id="selected-chips"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Vytvořit výpůjčku</button>
+            </form>
+        </div>
+
+        <!-- Správa čipů -->
+        <div class="tab-content" id="tab-chips">
+            <div class="section-header">
+                <h2>Správa čipů</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="import-chips-btn">Importovat XLSX</button>
+                    <input type="file" id="import-chips" accept=".xlsx" style="display: none;">
+                    <button class="btn btn-success" id="export-chips">Exportovat XLSX</button>
+                </div>
+            </div>
+            
+            <form id="add-chip-form" style="margin-bottom: 30px;">
+                <div class="form-group">
+                    <label for="chip-identifier">Identifikátor čipu</label>
+                    <input type="text" id="chip-identifier" placeholder="Např. CHIP-001" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Přidat čip</button>
+            </form>
+
+            <div id="chips-list"></div>
+        </div>
+
+        <!-- Správa zaměstnanců -->
+        <div class="tab-content" id="tab-employees">
+            <div class="section-header">
+                <h2>Správa zaměstnanců</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="import-employees-btn">Importovat XLSX</button>
+                    <input type="file" id="import-employees" accept=".xlsx" style="display: none;">
+                    <button class="btn btn-success" id="export-employees">Exportovat XLSX</button>
+                </div>
+            </div>
+            
+            <form id="add-employee-form" style="margin-bottom: 30px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="employee-name">Jméno zaměstnance</label>
+                        <input type="text" id="employee-name" placeholder="Jan Novák" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="employee-number">Zaměstnanecké číslo</label>
+                        <input type="text" id="employee-number" placeholder="12345" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="employee-department">Odbor</label>
+                    <input type="text" id="employee-department" placeholder="Výroba, IT, Administrativa..." required>
+                </div>
+                <button type="submit" class="btn btn-primary">Přidat zaměstnance</button>
+            </form>
+
+            <div id="employees-list"></div>
+        </div>
+
+        <!-- Export -->
+        <div class="tab-content" id="tab-export">
+            <div class="section-header">
+                <h2>Export výpůjček</h2>
+            </div>
+            
+            <div class="form-group">
+                <label for="export-month">Vyberte měsíc</label>
+                <input type="month" id="export-month">
+            </div>
+            <button class="btn btn-success" id="export-borrowings">Exportovat do XLSX</button>
+        </div>
+
+        <!-- Správa dat -->
+        <div class="tab-content" id="tab-data-management">
+            <div class="section-header">
+                <h2>Správa dat</h2>
+            </div>
+
+            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+                <p style="margin: 0; color: #856404;">
+                    <strong>ℹ️ Informace:</strong> Tato funkce umožňuje zálohovat všechna data aplikace (čipy, zaměstnance a výpůjčky) do jednoho souboru. 
+                    Zálohu si můžete stáhnout a následně ji obnovit na jiném zařízení nebo prohlížeči.
+                </p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+                <div style="background: var(--bg-gray); padding: 25px; border-radius: 8px;">
+                    <h3 style="margin-bottom: 15px;">📥 Export dat</h3>
+                    <p style="margin-bottom: 20px; color: var(--text-gray);">
+                        Exportujte všechna data do souboru JSON. Tento soubor obsahuje čipy, zaměstnance a výpůjčky.
+                    </p>
+                    <button class="btn btn-success" id="export-all-data" style="width: 100%;">
+                        Exportovat všechna data
+                    </button>
+                </div>
+
+                <div style="background: var(--bg-gray); padding: 25px; border-radius: 8px;">
+                    <h3 style="margin-bottom: 15px;">📤 Import dat</h3>
+                    <p style="margin-bottom: 20px; color: var(--text-gray);">
+                        Importujte data ze záložního souboru JSON. <strong>Pozor:</strong> Tato akce přepíše všechna současná data!
+                    </p>
+                    <button class="btn btn-primary" id="import-all-data-btn" style="width: 100%;">
+                        Importovat data
+                    </button>
+                    <input type="file" id="import-all-data" accept=".json" style="display: none;">
+                </div>
+            </div>
+
+            <div style="background: var(--bg-gray); padding: 25px; border-radius: 8px;">
+                <h3 style="margin-bottom: 15px;">🗑️ Smazat všechna data</h3>
+                <p style="margin-bottom: 20px; color: var(--text-gray);">
+                    Tato akce smaže úplně všechna data z aplikace. Tuto operaci nelze vrátit zpět!
+                </p>
+                <button class="btn btn-danger" id="delete-all-data">
+                    Smazat všechna data
+                </button>
+            </div>
+
+            <div style="margin-top: 30px; padding: 20px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px;">
+                <h3 style="margin-bottom: 10px; color: #1565c0;">📊 Statistiky</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 15px;">
+                    <div>
+                        <div style="font-size: 14px; color: var(--text-gray);">Počet čipů</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #1565c0;" id="stats-chips">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; color: var(--text-gray);">Počet zaměstnanců</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #1565c0;" id="stats-employees">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; color: var(--text-gray);">Počet výpůjček</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #1565c0;" id="stats-borrowings">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; padding: 20px; background: var(--bg-gray); border-radius: 8px;">
+                <h3 style="margin-bottom: 15px;">📅 Správa výpůjček podle měsíců</h3>
+                <p style="margin-bottom: 20px; color: var(--text-gray); font-size: 14px;">
+                    Zobrazení měsíců, pro které existují výpůjčky, a možnost jejich hromadného smazání.
+                </p>
+                <div id="months-overview"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Borrowing Modal -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upravit výpůjčku</h2>
+                <button class="close-modal" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="edit-borrowing-form">
+                <input type="hidden" id="edit-borrowing-id">
+                
+                <div class="form-group">
+                    <label for="edit-employee-search">Zaměstnanec *</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="edit-employee-search" placeholder="Začněte psát jméno nebo číslo zaměstnance..." required autocomplete="off">
+                        <div class="autocomplete-suggestions" id="edit-employee-suggestions"></div>
+                    </div>
+                    <input type="hidden" id="edit-selected-employee-id">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-start-date">Datum začátku *</label>
+                        <input type="date" id="edit-start-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-end-date">Datum konce</label>
+                        <input type="date" id="edit-end-date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-chip-search">Přidat čip</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="edit-chip-search" placeholder="Začněte psát identifikátor čipu..." autocomplete="off">
+                        <div class="autocomplete-suggestions" id="edit-chip-suggestions"></div>
+                    </div>
+                    <div class="chip-list" id="edit-selected-chips"></div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Zrušit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Employee Modal -->
+    <div class="modal" id="edit-employee-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upravit zaměstnance</h2>
+                <button class="close-modal" onclick="closeEditEmployeeModal()">&times;</button>
+            </div>
+            <form id="edit-employee-form">
+                <input type="hidden" id="edit-employee-id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-employee-name">Jméno zaměstnance</label>
+                        <input type="text" id="edit-employee-name" placeholder="Jan Novák" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-employee-number">Zaměstnanecké číslo</label>
+                        <input type="text" id="edit-employee-number" placeholder="12345" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-employee-department">Odbor</label>
+                    <input type="text" id="edit-employee-department" placeholder="Výroba, IT, Administrativa..." required>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditEmployeeModal()">Zrušit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Dialog Modal -->
+    <div class="modal" id="custom-dialog-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="dialog-title">Upozornění</h2>
+            </div>
+            <div id="dialog-content" style="margin-bottom: 20px; line-height: 1.6; white-space: pre-wrap;"></div>
+            <div id="dialog-input-container" style="margin-bottom: 20px; display: none;">
+                <input type="text" id="dialog-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" id="dialog-cancel-btn" style="display: none;">Zrušit</button>
+                <button class="btn btn-primary" id="dialog-ok-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load SheetJS library for XLSX support -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+        // Custom Dialog System
+        const CustomDialog = {
+            alert: function(message, title = 'Upozornění') {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('custom-dialog-modal');
+                    const titleEl = document.getElementById('dialog-title');
+                    const contentEl = document.getElementById('dialog-content');
+                    const inputContainer = document.getElementById('dialog-input-container');
+                    const okBtn = document.getElementById('dialog-ok-btn');
+                    const cancelBtn = document.getElementById('dialog-cancel-btn');
+                    
+                    titleEl.textContent = title;
+                    contentEl.textContent = message;
+                    inputContainer.style.display = 'none';
+                    cancelBtn.style.display = 'none';
+                    okBtn.textContent = 'OK';
+                    
+                    const handleOk = () => {
+                        modal.classList.remove('active');
+                        okBtn.removeEventListener('click', handleOk);
+                        resolve(true);
+                    };
+                    
+                    okBtn.addEventListener('click', handleOk);
+                    modal.classList.add('active');
+                    okBtn.focus();
+                });
+            },
+            
+            confirm: function(message, title = 'Potvrzení') {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('custom-dialog-modal');
+                    const titleEl = document.getElementById('dialog-title');
+                    const contentEl = document.getElementById('dialog-content');
+                    const inputContainer = document.getElementById('dialog-input-container');
+                    const okBtn = document.getElementById('dialog-ok-btn');
+                    const cancelBtn = document.getElementById('dialog-cancel-btn');
+                    
+                    titleEl.textContent = title;
+                    contentEl.textContent = message;
+                    inputContainer.style.display = 'none';
+                    cancelBtn.style.display = 'block';
+                    okBtn.textContent = 'OK';
+                    cancelBtn.textContent = 'Zrušit';
+                    
+                    const handleOk = () => {
+                        modal.classList.remove('active');
+                        cleanup();
+                        resolve(true);
+                    };
+                    
+                    const handleCancel = () => {
+                        modal.classList.remove('active');
+                        cleanup();
+                        resolve(false);
+                    };
+                    
+                    const cleanup = () => {
+                        okBtn.removeEventListener('click', handleOk);
+                        cancelBtn.removeEventListener('click', handleCancel);
+                    };
+                    
+                    okBtn.addEventListener('click', handleOk);
+                    cancelBtn.addEventListener('click', handleCancel);
+                    modal.classList.add('active');
+                    okBtn.focus();
+                });
+            },
+            
+            prompt: function(message, defaultValue = '', title = 'Zadejte hodnotu') {
+                return new Promise((resolve) => {
+                    const modal = document.getElementById('custom-dialog-modal');
+                    const titleEl = document.getElementById('dialog-title');
+                    const contentEl = document.getElementById('dialog-content');
+                    const inputContainer = document.getElementById('dialog-input-container');
+                    const input = document.getElementById('dialog-input');
+                    const okBtn = document.getElementById('dialog-ok-btn');
+                    const cancelBtn = document.getElementById('dialog-cancel-btn');
+                    
+                    titleEl.textContent = title;
+                    contentEl.textContent = message;
+                    inputContainer.style.display = 'block';
+                    cancelBtn.style.display = 'block';
+                    okBtn.textContent = 'OK';
+                    cancelBtn.textContent = 'Zrušit';
+                    input.value = defaultValue;
+                    
+                    const handleOk = () => {
+                        const value = input.value;
+                        modal.classList.remove('active');
+                        cleanup();
+                        resolve(value);
+                    };
+                    
+                    const handleCancel = () => {
+                        modal.classList.remove('active');
+                        cleanup();
+                        resolve(null);
+                    };
+                    
+                    const handleKeyPress = (e) => {
+                        if (e.key === 'Enter') {
+                            handleOk();
+                        } else if (e.key === 'Escape') {
+                            handleCancel();
+                        }
+                    };
+                    
+                    const cleanup = () => {
+                        okBtn.removeEventListener('click', handleOk);
+                        cancelBtn.removeEventListener('click', handleCancel);
+                        input.removeEventListener('keypress', handleKeyPress);
+                    };
+                    
+                    okBtn.addEventListener('click', handleOk);
+                    cancelBtn.addEventListener('click', handleCancel);
+                    input.addEventListener('keypress', handleKeyPress);
+                    modal.classList.add('active');
+                    
+                    // Focus input after modal is visible
+                    setTimeout(() => {
+                        input.focus();
+                        input.select();
+                    }, 100);
+                });
+            }
+        };
+
+        // Data Storage
+        const Storage = {
+            get(key, defaultValue = []) {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            },
+            set(key, value) {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+        };
+
+        // Data Management
+        let chips = Storage.get('chips', []);
+        let employees = Storage.get('employees', []);
+        let borrowings = Storage.get('borrowings', []);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTabs();
+            initializeChips();
+            initializeEmployees();
+            initializeBorrowings();
+            initializeNewBorrowingForm();
+            initializeExport();
+            initializeEditEmployeeForm();
+            initializeDataManagement();
+            
+            // Set default dates
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('start-date').value = todayStr;
+            document.getElementById('end-date').min = todayStr;
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            document.getElementById('export-month').value = currentMonth;
+        });
+
+        // Tab Navigation
+        function initializeTabs() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.dataset.tab;
+                    
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    btn.classList.add('active');
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                    
+                    // Update stats when switching to data management tab
+                    if (tabId === 'data-management') {
+                        if (typeof updateDataStats === 'function') updateDataStats();
+                        if (typeof updateMonthsOverview === 'function') updateMonthsOverview();
+                    }
+                });
+            });
+        }
+
+        // Chips Management
+        function initializeChips() {
+            const form = document.getElementById('add-chip-form');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const identifier = document.getElementById('chip-identifier').value.trim();
+                
+                if (chips.some(c => c.identifier === identifier)) {
+                    await CustomDialog.alert('Čip s tímto identifikátorem již existuje!');
+                    return;
+                }
+                
+                const chip = {
+                    id: Date.now(),
+                    identifier: identifier
+                };
+                
+                chips.push(chip);
+                Storage.set('chips', chips);
+                form.reset();
+                renderChips();
+            });
+            
+            // Import - button triggers file input
+            document.getElementById('import-chips-btn').addEventListener('click', () => {
+                document.getElementById('import-chips').click();
+            });
+            document.getElementById('import-chips').addEventListener('change', handleChipImport);
+            
+            // Export
+            document.getElementById('export-chips').addEventListener('click', exportChips);
+            
+            renderChips();
+        }
+
+        function renderChips() {
+            const container = document.getElementById('chips-list');
+            
+            if (chips.length === 0) {
+                container.innerHTML = '<div class="empty-state">Zatím nejsou přidány žádné čipy.</div>';
+                return;
+            }
+            
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Identifikátor</th>
+                            <th>Akce</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${chips.map(chip => `
+                            <tr>
+                                <td>${chip.identifier}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-small" onclick="deleteChip(${chip.id})">Smazat</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+
+        async function deleteChip(id) {
+            if (!await CustomDialog.confirm('Opravdu chcete smazat tento čip?')) return;
+            
+            // Check if chip is in any borrowing
+            const inUse = borrowings.some(b => b.chips.includes(id));
+            if (inUse) {
+                await CustomDialog.alert('Tento čip nelze smazat, protože je použit ve výpůjčce.');
+                return;
+            }
+            
+            chips = chips.filter(c => c.id !== id);
+            Storage.set('chips', chips);
+            renderChips();
+        }
+
+        function handleChipImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    let imported = 0;
+                    rows.forEach(row => {
+                        const identifier = row['Identifikátor'] || row['Identifikator'] || row['identifier'] || row['Číslo čipu'] || row['Cislo cipu'];
+                        
+                        if (identifier && !chips.some(c => c.identifier === String(identifier))) {
+                            chips.push({
+                                id: Date.now() + imported,
+                                identifier: String(identifier)
+                            });
+                            imported++;
+                        }
+                    });
+                    
+                    Storage.set('chips', chips);
+                    renderChips();
+                    await CustomDialog.alert(`Importováno ${imported} čipů.`);
+                } catch (error) {
+                    await CustomDialog.alert('Chyba při importu souboru: ' + error.message, 'Chyba');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            e.target.value = '';
+        }
+
+        async function exportChips() {
+            if (chips.length === 0) {
+                await CustomDialog.alert('Nejsou žádné čipy k exportu.');
+                return;
+            }
+            
+            const data = chips.map(chip => ({
+                'Identifikátor': chip.identifier
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Čipy');
+            XLSX.writeFile(wb, 'cipy.xlsx');
+        }
+
+        // Employees Management
+        function initializeEmployees() {
+            const form = document.getElementById('add-employee-form');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('employee-name').value.trim();
+                const number = document.getElementById('employee-number').value.trim();
+                const department = document.getElementById('employee-department').value.trim();
+                
+                if (employees.some(emp => emp.employeeNumber === number)) {
+                    await CustomDialog.alert('Zaměstnanec s tímto číslem již existuje!');
+                    return;
+                }
+                
+                const employee = {
+                    id: Date.now(),
+                    name: name,
+                    employeeNumber: number,
+                    department: department
+                };
+                
+                employees.push(employee);
+                Storage.set('employees', employees);
+                form.reset();
+                renderEmployees();
+            });
+            
+            // Import - button triggers file input
+            document.getElementById('import-employees-btn').addEventListener('click', () => {
+                document.getElementById('import-employees').click();
+            });
+            document.getElementById('import-employees').addEventListener('change', handleEmployeeImport);
+            
+            // Export
+            document.getElementById('export-employees').addEventListener('click', exportEmployees);
+            
+            renderEmployees();
+        }
+
+        function renderEmployees() {
+            const container = document.getElementById('employees-list');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<div class="empty-state">Zatím nejsou přidáni žádní zaměstnanci.</div>';
+                return;
+            }
+            
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Jméno</th>
+                            <th>Zaměstnanecké číslo</th>
+                            <th>Odbor</th>
+                            <th>Akce</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${employees.map(emp => `
+                            <tr>
+                                <td>${emp.name}</td>
+                                <td>${emp.employeeNumber}</td>
+                                <td>${emp.department || '-'}</td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-primary btn-small" onclick="editEmployee(${emp.id})">Upravit</button>
+                                        <button class="btn btn-danger btn-small" onclick="deleteEmployee(${emp.id})">Smazat</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+
+        async function deleteEmployee(id) {
+            if (!await CustomDialog.confirm('Opravdu chcete smazat tohoto zaměstnance?')) return;
+            
+            // Check if employee has any borrowings
+            const hasBorowings = borrowings.some(b => b.employeeId === id);
+            if (hasBorowings) {
+                await CustomDialog.alert('Tohoto zaměstnance nelze smazat, protože má výpůjčky.');
+                return;
+            }
+            
+            employees = employees.filter(e => e.id !== id);
+            Storage.set('employees', employees);
+            renderEmployees();
+        }
+
+        function editEmployee(id) {
+            const employee = employees.find(e => e.id === id);
+            if (!employee) return;
+            
+            document.getElementById('edit-employee-id').value = employee.id;
+            document.getElementById('edit-employee-name').value = employee.name;
+            document.getElementById('edit-employee-number').value = employee.employeeNumber;
+            document.getElementById('edit-employee-department').value = employee.department || '';
+            
+            document.getElementById('edit-employee-modal').classList.add('active');
+        }
+
+        function closeEditEmployeeModal() {
+            document.getElementById('edit-employee-modal').classList.remove('active');
+            document.getElementById('edit-employee-form').reset();
+        }
+
+        function initializeEditEmployeeForm() {
+            document.getElementById('edit-employee-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const id = parseInt(document.getElementById('edit-employee-id').value);
+                const name = document.getElementById('edit-employee-name').value.trim();
+                const number = document.getElementById('edit-employee-number').value.trim();
+                const department = document.getElementById('edit-employee-department').value.trim();
+                
+                // Check if employee number already exists (except for current employee)
+                const duplicate = employees.find(emp => emp.employeeNumber === number && emp.id !== id);
+                if (duplicate) {
+                    await CustomDialog.alert('Zaměstnanec s tímto číslem již existuje!');
+                    return;
+                }
+                
+                const index = employees.findIndex(e => e.id === id);
+                if (index !== -1) {
+                    employees[index] = {
+                        id: id,
+                        name: name,
+                        employeeNumber: number,
+                        department: department
+                    };
+                    
+                    Storage.set('employees', employees);
+                    closeEditEmployeeModal();
+                    renderEmployees();
+                    // Re-render borrowings to update employee info
+                    renderBorrowings();
+                }
+            });
+        }
+
+
+        function handleEmployeeImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    let imported = 0;
+                    rows.forEach(row => {
+                        const name = row['Jméno'] || row['Jmeno'] || row['name'];
+                        const number = String(row['Zaměstnanecké číslo'] || row['Zamestnanecke cislo'] || row['employeeNumber'] || '');
+                        const department = row['Odbor'] || row['department'] || '';
+                        
+                        if (name && number && !employees.some(e => e.employeeNumber === number)) {
+                            employees.push({
+                                id: Date.now() + imported,
+                                name: name,
+                                employeeNumber: number,
+                                department: department
+                            });
+                            imported++;
+                        }
+                    });
+                    
+                    Storage.set('employees', employees);
+                    renderEmployees();
+                    await CustomDialog.alert(`Importováno ${imported} zaměstnanců.`);
+                } catch (error) {
+                    await CustomDialog.alert('Chyba při importu souboru: ' + error.message, 'Chyba');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            e.target.value = '';
+        }
+
+        async function exportEmployees() {
+            if (employees.length === 0) {
+                await CustomDialog.alert('Nejsou žádní zaměstnanci k exportu.');
+                return;
+            }
+            
+            const data = employees.map(emp => ({
+                'Jméno': emp.name,
+                'Zaměstnanecké číslo': emp.employeeNumber,
+                'Odbor': emp.department || ''
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Zaměstnanci');
+            XLSX.writeFile(wb, 'zamestnanci.xlsx');
+        }
+
+        // Autocomplete functionality
+        function setupAutocomplete(inputId, suggestionsId, hiddenInputId, getItems, onSelect) {
+            const input = document.getElementById(inputId);
+            const suggestionsEl = document.getElementById(suggestionsId);
+            const hiddenInput = document.getElementById(hiddenInputId);
+            
+            input.addEventListener('input', () => {
+                const value = input.value.toLowerCase().trim();
+                
+                if (value.length === 0) {
+                    suggestionsEl.innerHTML = '';
+                    suggestionsEl.style.display = 'none';
+                    if (hiddenInput) hiddenInput.value = '';
+                    return;
+                }
+                
+                const items = getItems(value);
+                
+                if (items.length === 0) {
+                    suggestionsEl.innerHTML = '';
+                    suggestionsEl.style.display = 'none';
+                    return;
+                }
+                
+                suggestionsEl.innerHTML = items.map(item => 
+                    `<div class="autocomplete-suggestion" data-id="${item.id}">${item.display}</div>`
+                ).join('');
+                suggestionsEl.style.display = 'block';
+                
+                suggestionsEl.querySelectorAll('.autocomplete-suggestion').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const id = parseInt(el.dataset.id);
+                        const selectedItem = items.find(i => i.id === id);
+                        if (hiddenInput) hiddenInput.value = id;
+                        input.value = selectedItem.display;
+                        suggestionsEl.style.display = 'none';
+                        if (onSelect) onSelect(selectedItem);
+                    });
+                });
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !suggestionsEl.contains(e.target)) {
+                    suggestionsEl.style.display = 'none';
+                }
+            });
+        }
+
+        // New Borrowing Form
+        let newBorrowingSelectedChipIds = [];
+        
+        function initializeNewBorrowingForm() {
+            // Employee autocomplete
+            setupAutocomplete(
+                'employee-search',
+                'employee-suggestions',
+                'selected-employee-id',
+                (value) => employees
+                    .filter(e => 
+                        e.name.toLowerCase().includes(value) || 
+                        e.employeeNumber.toLowerCase().includes(value) ||
+                        (e.department && e.department.toLowerCase().includes(value))
+                    )
+                    .map(e => ({ id: e.id, display: `${e.name} (${e.employeeNumber}) - ${e.department || 'Bez odboru'}` })),
+                null
+            );
+            
+            // Chip autocomplete with availability check
+            const chipSearchInput = document.getElementById('chip-search');
+            const chipSuggestionsEl = document.getElementById('chip-suggestions');
+            const selectedChipsContainer = document.getElementById('selected-chips');
+            
+            chipSearchInput.addEventListener('input', () => {
+                const value = chipSearchInput.value.toLowerCase().trim();
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value || startDate;
+                
+                if (value.length === 0) {
+                    chipSuggestionsEl.innerHTML = '';
+                    chipSuggestionsEl.style.display = 'none';
+                    return;
+                }
+                
+                const availableChips = getAvailableChips(startDate, endDate, newBorrowingSelectedChipIds);
+                const filtered = availableChips.filter(c => 
+                    c.identifier.toLowerCase().includes(value) && 
+                    !newBorrowingSelectedChipIds.includes(c.id)
+                );
+                
+                if (filtered.length === 0) {
+                    chipSuggestionsEl.innerHTML = '';
+                    chipSuggestionsEl.style.display = 'none';
+                    return;
+                }
+                
+                chipSuggestionsEl.innerHTML = filtered.map(chip => 
+                    `<div class="autocomplete-suggestion" data-id="${chip.id}">${chip.identifier}</div>`
+                ).join('');
+                chipSuggestionsEl.style.display = 'block';
+                
+                chipSuggestionsEl.querySelectorAll('.autocomplete-suggestion').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const chipId = parseInt(el.dataset.id);
+                        addChipToNewBorrowingSelection(chipId);
+                        chipSearchInput.value = '';
+                        chipSuggestionsEl.style.display = 'none';
+                    });
+                });
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!chipSearchInput.contains(e.target) && !chipSuggestionsEl.contains(e.target)) {
+                    chipSuggestionsEl.style.display = 'none';
+                }
+            });
+            
+            // Date validation for new borrowing
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            
+            // Update min attribute on end date when start date changes
+            startDateInput.addEventListener('change', () => {
+                if (startDateInput.value) {
+                    endDateInput.min = startDateInput.value;
+                    // Clear end date if it's now invalid
+                    if (endDateInput.value && new Date(endDateInput.value) < new Date(startDateInput.value)) {
+                        endDateInput.value = '';
+                    }
+                }
+            });
+            
+            endDateInput.addEventListener('change', async () => {
+                if (startDateInput.value && endDateInput.value) {
+                    if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
+                        await CustomDialog.alert('Datum konce musí být stejné nebo pozdější než datum začátku.');
+                        endDateInput.value = '';
+                    }
+                }
+            });
+            
+            // Form submission
+            document.getElementById('new-borrowing-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const employeeId = parseInt(document.getElementById('selected-employee-id').value);
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value || null;
+                
+                if (!employeeId) {
+                    await CustomDialog.alert('Vyberte zaměstnance.');
+                    return;
+                }
+                
+                if (newBorrowingSelectedChipIds.length === 0) {
+                    await CustomDialog.alert('Přidejte alespoň jeden čip.');
+                    return;
+                }
+                
+                if (endDate && new Date(endDate) < new Date(startDate)) {
+                    await CustomDialog.alert('Datum konce musí být stejné nebo pozdější než datum začátku.');
+                    return;
+                }
+                
+                const borrowing = {
+                    id: Date.now(),
+                    employeeId: employeeId,
+                    chips: [...newBorrowingSelectedChipIds],
+                    startDate: startDate,
+                    endDate: endDate
+                };
+                
+                borrowings.push(borrowing);
+                Storage.set('borrowings', borrowings);
+                
+                // Reset form
+                document.getElementById('new-borrowing-form').reset();
+                document.getElementById('selected-employee-id').value = '';
+                const todayStr = new Date().toISOString().split('T')[0];
+                document.getElementById('start-date').value = todayStr;
+                document.getElementById('end-date').min = todayStr;
+                newBorrowingSelectedChipIds = [];
+                selectedChipsContainer.innerHTML = '';
+                
+                await CustomDialog.alert('Výpůjčka byla vytvořena.');
+                
+                // Switch to borrowings tab
+                document.querySelector('[data-tab="borrowings"]').click();
+                renderBorrowings();
+            });
+        }
+
+        function addChipToNewBorrowingSelection(chipId) {
+            if (newBorrowingSelectedChipIds.includes(chipId)) return;
+            
+            newBorrowingSelectedChipIds.push(chipId);
+            const chip = chips.find(c => c.id === chipId);
+            const container = document.getElementById('selected-chips');
+            
+            const tag = document.createElement('div');
+            tag.className = 'chip-tag';
+            tag.innerHTML = `
+                ${chip.identifier}
+                <button type="button" onclick="removeChipFromNewBorrowingSelection(${chipId}, this)">&times;</button>
+            `;
+            container.appendChild(tag);
+        }
+
+        function removeChipFromNewBorrowingSelection(chipId, button) {
+            newBorrowingSelectedChipIds = newBorrowingSelectedChipIds.filter(id => id !== chipId);
+            button.closest('.chip-tag').remove();
+        }
+
+        function removeChipFromSelection(chipId, button) {
+            editSelectedChipIds = editSelectedChipIds.filter(id => id !== chipId);
+            button.closest('.chip-tag').remove();
+        }
+
+        function getAvailableChips(startDate, endDate, excludeChipIds = [], excludeBorrowingId = null) {
+            if (!startDate) return chips;
+            
+            const start = new Date(startDate);
+            const end = endDate ? new Date(endDate) : new Date(startDate);
+            
+            return chips.filter(chip => {
+                if (excludeChipIds.includes(chip.id)) return false;
+                
+                // Check if chip is borrowed during this period
+                const isBooked = borrowings.some(b => {
+                    if (excludeBorrowingId && b.id === excludeBorrowingId) return false;
+                    if (!b.chips.includes(chip.id)) return false;
+                    
+                    const bStart = new Date(b.startDate);
+                    const bEnd = b.endDate ? new Date(b.endDate) : new Date(b.startDate);
+                    
+                    // Check overlap
+                    return start <= bEnd && end >= bStart;
+                });
+                
+                return !isBooked;
+            });
+        }
+
+        // Borrowings Management
+        function initializeBorrowings() {
+            renderBorrowings();
+            
+            // Setup filter listeners
+            document.getElementById('filter-employee').addEventListener('input', renderBorrowings);
+            document.getElementById('filter-department').addEventListener('input', renderBorrowings);
+            document.getElementById('filter-chip').addEventListener('input', renderBorrowings);
+            document.getElementById('filter-status').addEventListener('change', renderBorrowings);
+            document.getElementById('clear-filters').addEventListener('click', () => {
+                document.getElementById('filter-employee').value = '';
+                document.getElementById('filter-department').value = '';
+                document.getElementById('filter-chip').value = '';
+                document.getElementById('filter-status').value = 'all';
+                renderBorrowings();
+            });
+            
+            // Import/Export listeners
+            document.getElementById('import-borrowings-btn').addEventListener('click', () => {
+                document.getElementById('import-borrowings').click();
+            });
+            document.getElementById('import-borrowings').addEventListener('change', handleBorrowingsImport);
+            document.getElementById('export-borrowings-list').addEventListener('click', exportBorrowingsList);
+        }
+
+        function renderBorrowings() {
+            const container = document.getElementById('borrowings-list');
+            
+            if (borrowings.length === 0) {
+                container.innerHTML = '<div class="empty-state">Zatím nejsou žádné výpůjčky.</div>';
+                return;
+            }
+            
+            // Get filter values
+            const filterEmployee = document.getElementById('filter-employee').value.toLowerCase().trim();
+            const filterDepartment = document.getElementById('filter-department').value.toLowerCase().trim();
+            const filterChip = document.getElementById('filter-chip').value.toLowerCase().trim();
+            const filterStatus = document.getElementById('filter-status').value;
+            
+            // Filter borrowings
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let filtered = borrowings.filter(b => {
+                // Filter by employee
+                if (filterEmployee) {
+                    const employee = employees.find(e => e.id === b.employeeId);
+                    if (!employee) return false;
+                    const employeeMatch = employee.name.toLowerCase().includes(filterEmployee) || 
+                                        employee.employeeNumber.toLowerCase().includes(filterEmployee);
+                    if (!employeeMatch) return false;
+                }
+                
+                // Filter by department
+                if (filterDepartment) {
+                    const employee = employees.find(e => e.id === b.employeeId);
+                    if (!employee || !employee.department) return false;
+                    if (!employee.department.toLowerCase().includes(filterDepartment)) return false;
+                }
+                
+                // Filter by chip
+                if (filterChip) {
+                    const hasChip = b.chips.some(chipId => {
+                        const chip = chips.find(c => c.id === chipId);
+                        return chip && chip.identifier.toLowerCase().includes(filterChip);
+                    });
+                    if (!hasChip) return false;
+                }
+                
+                // Filter by status
+                if (filterStatus !== 'all') {
+                    const isActive = !b.endDate || new Date(b.endDate) >= today;
+                    if (filterStatus === 'active' && !isActive) return false;
+                    if (filterStatus === 'ended' && isActive) return false;
+                }
+                
+                return true;
+            });
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">Žádné výpůjčky neodpovídají zadaným filtrům.</div>';
+                return;
+            }
+            
+            // Sort by start date, newest first
+            const sorted = [...filtered].sort((a, b) => 
+                new Date(b.startDate) - new Date(a.startDate)
+            );
+            
+            const getPluralForm = (count) => {
+                if (count === 1) return 'výpůjčka';
+                if (count >= 2 && count <= 4) return 'výpůjčky';
+                return 'výpůjček';
+            };
+            
+            const resultCount = filtered.length === borrowings.length 
+                ? `Celkem ${borrowings.length} ${getPluralForm(borrowings.length)}`
+                : `Zobrazeno ${filtered.length} z ${borrowings.length} ${getPluralForm(borrowings.length)}`;
+            
+            const table = `
+                <div style="margin-bottom: 10px; color: var(--text-gray); font-size: 14px;">
+                    ${resultCount}
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zaměstnanec</th>
+                            <th>Odbor</th>
+                            <th>Čipy</th>
+                            <th>Začátek</th>
+                            <th>Konec</th>
+                            <th>Stav</th>
+                            <th>Akce</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map(b => {
+                            const employee = employees.find(e => e.id === b.employeeId);
+                            const chipList = b.chips.map(chipId => {
+                                const chip = chips.find(c => c.id === chipId);
+                                return chip ? chip.identifier : 'N/A';
+                            }).join(', ');
+                            
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const isActive = !b.endDate || new Date(b.endDate) >= today;
+                            
+                            return `
+                                <tr>
+                                    <td>${employee ? `${employee.name} (${employee.employeeNumber})` : 'N/A'}</td>
+                                    <td>${employee && employee.department ? employee.department : '-'}</td>
+                                    <td>${chipList}</td>
+                                    <td>${formatDate(b.startDate)}</td>
+                                    <td>${b.endDate ? formatDate(b.endDate) : '-'}</td>
+                                    <td>
+                                        <span class="status-badge ${isActive ? 'status-active' : 'status-returned'}">
+                                            ${isActive ? 'Aktivní' : 'Ukončeno'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="actions">
+                                            ${isActive ? `<button class="btn btn-success btn-small" onclick="endBorrowing(${b.id})">Ukončit</button>` : ''}
+                                            <button class="btn btn-primary btn-small" onclick="editBorrowing(${b.id})">Upravit</button>
+                                            <button class="btn btn-danger btn-small" onclick="deleteBorrowing(${b.id})">Smazat</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('cs-CZ');
+        }
+
+        async function deleteBorrowing(id) {
+            if (!await CustomDialog.confirm('Opravdu chcete smazat tuto výpůjčku?')) return;
+            
+            borrowings = borrowings.filter(b => b.id !== id);
+            Storage.set('borrowings', borrowings);
+            renderBorrowings();
+        }
+
+        async function exportBorrowingsList() {
+            if (borrowings.length === 0) {
+                await CustomDialog.alert('Nejsou žádné výpůjčky k exportu.');
+                return;
+            }
+            
+            const data = borrowings.map(b => {
+                const employee = employees.find(e => e.id === b.employeeId);
+                const chipIdentifiers = b.chips.map(chipId => {
+                    const chip = chips.find(c => c.id === chipId);
+                    return chip ? chip.identifier : '';
+                }).filter(id => id).join(', ');
+                
+                return {
+                    'Zaměstnanecké číslo': employee ? employee.employeeNumber : '',
+                    'Jméno zaměstnance': employee ? employee.name : '',
+                    'Odbor': employee ? (employee.department || '') : '',
+                    'Čipy': chipIdentifiers,
+                    'Datum začátku': b.startDate,
+                    'Datum konce': b.endDate || ''
+                };
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Výpůjčky');
+            XLSX.writeFile(wb, 'vypujcky_vse.xlsx');
+        }
+
+        function handleBorrowingsImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    let imported = 0;
+                    let skipped = 0;
+                    
+                    rows.forEach(row => {
+                        // Get employee number
+                        const empNumber = String(row['Zaměstnanecké číslo'] || row['Zamestnanecke cislo'] || '').trim();
+                        if (!empNumber) {
+                            skipped++;
+                            return;
+                        }
+                        
+                        // Find employee
+                        const employee = employees.find(e => e.employeeNumber === empNumber);
+                        if (!employee) {
+                            skipped++;
+                            return;
+                        }
+                        
+                        // Get chip identifiers
+                        const chipIdentifiersStr = String(row['Čipy'] || row['Cipy'] || '').trim();
+                        if (!chipIdentifiersStr) {
+                            skipped++;
+                            return;
+                        }
+                        
+                        // Split by comma and find chip IDs
+                        const chipIdentifiers = chipIdentifiersStr.split(',').map(s => s.trim()).filter(s => s);
+                        const chipIds = [];
+                        
+                        chipIdentifiers.forEach(identifier => {
+                            const chip = chips.find(c => c.identifier === identifier);
+                            if (chip) {
+                                chipIds.push(chip.id);
+                            }
+                        });
+                        
+                        if (chipIds.length === 0) {
+                            skipped++;
+                            return;
+                        }
+                        
+                        // Get dates
+                        const startDate = row['Datum začátku'] || row['Datum zacatku'] || '';
+                        if (!startDate) {
+                            skipped++;
+                            return;
+                        }
+                        
+                        const endDate = row['Datum konce'] || '';
+                        
+                        // Create borrowing
+                        const borrowing = {
+                            id: Date.now() + imported,
+                            employeeId: employee.id,
+                            chips: chipIds,
+                            startDate: startDate,
+                            endDate: endDate || null
+                        };
+                        
+                        borrowings.push(borrowing);
+                        imported++;
+                    });
+                    
+                    Storage.set('borrowings', borrowings);
+                    renderBorrowings();
+                    
+                    let message = `Importováno ${imported} výpůjček.`;
+                    if (skipped > 0) {
+                        message += ` Přeskočeno ${skipped} řádků (chybějící data nebo neexistující zaměstnanec/čip).`;
+                    }
+                    await CustomDialog.alert(message);
+                } catch (error) {
+                    await CustomDialog.alert('Chyba při importu souboru: ' + error.message, 'Chyba');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            e.target.value = '';
+        }
+
+        async function endBorrowing(id) {
+            if (!await CustomDialog.confirm('Opravdu chcete ukončit tuto výpůjčku?')) return;
+            
+            const borrowing = borrowings.find(b => b.id === id);
+            if (!borrowing) return;
+            
+            // Set end date to today
+            const today = new Date();
+            borrowing.endDate = today.toISOString().split('T')[0];
+            
+            Storage.set('borrowings', borrowings);
+            renderBorrowings();
+        }
+
+        // Edit Borrowing
+        let editSelectedChipIds = [];
+
+        function editBorrowing(id) {
+            const borrowing = borrowings.find(b => b.id === id);
+            if (!borrowing) return;
+            
+            const employee = employees.find(e => e.id === borrowing.employeeId);
+            
+            document.getElementById('edit-borrowing-id').value = borrowing.id;
+            document.getElementById('edit-employee-search').value = employee ? `${employee.name} (${employee.employeeNumber}) - ${employee.department || 'Bez odboru'}` : '';
+            document.getElementById('edit-selected-employee-id').value = borrowing.employeeId;
+            document.getElementById('edit-start-date').value = borrowing.startDate;
+            document.getElementById('edit-end-date').value = borrowing.endDate || '';
+            
+            // Set min attribute for end date
+            document.getElementById('edit-end-date').min = borrowing.startDate;
+            
+            // Setup chips
+            editSelectedChipIds = [...borrowing.chips];
+            const container = document.getElementById('edit-selected-chips');
+            container.innerHTML = '';
+            borrowing.chips.forEach(chipId => {
+                const chip = chips.find(c => c.id === chipId);
+                if (chip) {
+                    const tag = document.createElement('div');
+                    tag.className = 'chip-tag';
+                    tag.innerHTML = `
+                        ${chip.identifier}
+                        <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
+                    `;
+                    container.appendChild(tag);
+                }
+            });
+            
+            // Setup autocomplete for edit modal
+            setupEditAutocomplete(borrowing.id);
+            
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function setupEditAutocomplete(borrowingId) {
+            // Employee autocomplete
+            setupAutocomplete(
+                'edit-employee-search',
+                'edit-employee-suggestions',
+                'edit-selected-employee-id',
+                (value) => employees
+                    .filter(e => 
+                        e.name.toLowerCase().includes(value) || 
+                        e.employeeNumber.toLowerCase().includes(value) ||
+                        (e.department && e.department.toLowerCase().includes(value))
+                    )
+                    .map(e => ({ id: e.id, display: `${e.name} (${e.employeeNumber}) - ${e.department || 'Bez odboru'}` })),
+                null
+            );
+            
+            // Chip autocomplete
+            const chipSearchInput = document.getElementById('edit-chip-search');
+            const chipSuggestionsEl = document.getElementById('edit-chip-suggestions');
+            const selectedChipsContainer = document.getElementById('edit-selected-chips');
+            
+            // Remove old listeners
+            const newChipSearchInput = chipSearchInput.cloneNode(true);
+            chipSearchInput.parentNode.replaceChild(newChipSearchInput, chipSearchInput);
+            
+            document.getElementById('edit-chip-search').addEventListener('input', function() {
+                const value = this.value.toLowerCase().trim();
+                const startDate = document.getElementById('edit-start-date').value;
+                const endDate = document.getElementById('edit-end-date').value || startDate;
+                
+                if (value.length === 0) {
+                    chipSuggestionsEl.innerHTML = '';
+                    chipSuggestionsEl.style.display = 'none';
+                    return;
+                }
+                
+                const availableChips = getAvailableChips(startDate, endDate, editSelectedChipIds, borrowingId);
+                const filtered = availableChips.filter(c => 
+                    c.identifier.toLowerCase().includes(value) && 
+                    !editSelectedChipIds.includes(c.id)
+                );
+                
+                if (filtered.length === 0) {
+                    chipSuggestionsEl.innerHTML = '';
+                    chipSuggestionsEl.style.display = 'none';
+                    return;
+                }
+                
+                chipSuggestionsEl.innerHTML = filtered.map(chip => 
+                    `<div class="autocomplete-suggestion" data-id="${chip.id}">${chip.identifier}</div>`
+                ).join('');
+                chipSuggestionsEl.style.display = 'block';
+                
+                chipSuggestionsEl.querySelectorAll('.autocomplete-suggestion').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const chipId = parseInt(el.dataset.id);
+                        addChipToEditSelection(chipId);
+                        document.getElementById('edit-chip-search').value = '';
+                        chipSuggestionsEl.style.display = 'none';
+                    });
+                });
+            });
+        }
+
+        function addChipToEditSelection(chipId) {
+            if (editSelectedChipIds.includes(chipId)) return;
+            
+            editSelectedChipIds.push(chipId);
+            const chip = chips.find(c => c.id === chipId);
+            const container = document.getElementById('edit-selected-chips');
+            
+            const tag = document.createElement('div');
+            tag.className = 'chip-tag';
+            tag.innerHTML = `
+                ${chip.identifier}
+                <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
+            `;
+            container.appendChild(tag);
+        }
+
+        // Date validation for edit form
+        const editStartDateInput = document.getElementById('edit-start-date');
+        const editEndDateInput = document.getElementById('edit-end-date');
+        
+        // Update min attribute on end date when start date changes
+        editStartDateInput.addEventListener('change', () => {
+            if (editStartDateInput.value) {
+                editEndDateInput.min = editStartDateInput.value;
+                // Clear end date if it's now invalid
+                if (editEndDateInput.value && new Date(editEndDateInput.value) < new Date(editStartDateInput.value)) {
+                    editEndDateInput.value = '';
+                }
+            }
+        });
+        
+        editEndDateInput.addEventListener('change', async () => {
+            if (editStartDateInput.value && editEndDateInput.value) {
+                if (new Date(editEndDateInput.value) < new Date(editStartDateInput.value)) {
+                    await CustomDialog.alert('Datum konce musí být stejné nebo pozdější než datum začátku.');
+                    editEndDateInput.value = '';
+                }
+            }
+        });
+
+        document.getElementById('edit-borrowing-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = parseInt(document.getElementById('edit-borrowing-id').value);
+            const employeeId = parseInt(document.getElementById('edit-selected-employee-id').value);
+            const startDate = document.getElementById('edit-start-date').value;
+            const endDate = document.getElementById('edit-end-date').value || null;
+            
+            if (!employeeId) {
+                await CustomDialog.alert('Vyberte zaměstnance.');
+                return;
+            }
+            
+            if (editSelectedChipIds.length === 0) {
+                await CustomDialog.alert('Přidejte alespoň jeden čip.');
+                return;
+            }
+            
+            if (endDate && new Date(endDate) < new Date(startDate)) {
+                await CustomDialog.alert('Datum konce musí být stejné nebo pozdější než datum začátku.');
+                return;
+            }
+            
+            const index = borrowings.findIndex(b => b.id === id);
+            if (index !== -1) {
+                borrowings[index] = {
+                    id: id,
+                    employeeId: employeeId,
+                    chips: [...editSelectedChipIds],
+                    startDate: startDate,
+                    endDate: endDate
+                };
+                
+                Storage.set('borrowings', borrowings);
+                closeEditModal();
+                renderBorrowings();
+            }
+        });
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+            document.getElementById('edit-borrowing-form').reset();
+            document.getElementById('edit-end-date').min = '';
+            editSelectedChipIds = [];
+        }
+
+        // Export functionality
+        function initializeExport() {
+            document.getElementById('export-borrowings').addEventListener('click', exportBorrowings);
+        }
+
+        async function exportBorrowings() {
+            const monthInput = document.getElementById('export-month').value;
+            if (!monthInput) {
+                await CustomDialog.alert('Vyberte měsíc pro export.');
+                return;
+            }
+            
+            const [year, month] = monthInput.split('-').map(Number);
+            const startDate = new Date(year, month - 1, 1);
+            const endDate = new Date(year, month, 0);
+            
+            const exportData = [];
+            
+            // For each borrowing
+            borrowings.forEach((borrowing, borrowingIndex) => {
+                const employee = employees.find(e => e.id === borrowing.employeeId);
+                if (!employee) return;
+                
+                const bStart = new Date(borrowing.startDate);
+                const bEnd = borrowing.endDate ? new Date(borrowing.endDate) : new Date();
+                
+                // Check if borrowing overlaps with selected month
+                if (bStart > endDate || bEnd < startDate) return;
+                
+                // For each chip in borrowing
+                borrowing.chips.forEach(chipId => {
+                    const chip = chips.find(c => c.id === chipId);
+                    if (!chip) return;
+                    
+                    // For each day in the month where chip was borrowed
+                    let currentDate = new Date(Math.max(bStart, startDate));
+                    const lastDate = new Date(Math.min(bEnd, endDate));
+                    
+                    while (currentDate <= lastDate) {
+                        const day = currentDate.getDate();
+                        const monthNum = currentDate.getMonth() + 1;
+                        const yearNum = currentDate.getFullYear();
+                        
+                        exportData.push({
+                            borrowingIndex: borrowingIndex,
+                            borrowingId: borrowing.id,
+                            chipId: chipId,
+                            chipIdentifier: chip.identifier,
+                            date: new Date(currentDate),
+                            dateFormatted: `${day}/${monthNum}/${yearNum}`,
+                            employeeNumber: employee.employeeNumber,
+                            employeeName: employee.name,
+                            department: employee.department || ''
+                        });
+                        
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                });
+            });
+            
+            if (exportData.length === 0) {
+                await CustomDialog.alert('Pro vybraný měsíc nejsou žádné výpůjčky.');
+                return;
+            }
+            
+            // Sort by borrowing, then chip, then date
+            exportData.sort((a, b) => {
+                // First by borrowing ID
+                if (a.borrowingId !== b.borrowingId) {
+                    return a.borrowingId - b.borrowingId;
+                }
+                // Then by chip identifier
+                const chipCompare = a.chipIdentifier.localeCompare(b.chipIdentifier);
+                if (chipCompare !== 0) return chipCompare;
+                // Finally by date
+                return a.date - b.date;
+            });
+            
+            // Create worksheet data with header row
+            const wsData = [];
+            
+            // First row: merged cells with title
+            wsData.push([`Zapůjčení čipů na plavání - ${year}/${month}`]);
+            
+            // Second row: column headers
+            wsData.push(['Číslo čipu', 'Osobní číslo', 'Jméno', 'Odbor', 'Datum výpůjčky']);
+            
+            // Data rows
+            exportData.forEach(row => {
+                wsData.push([
+                    row.chipIdentifier,
+                    row.employeeNumber,
+                    row.employeeName,
+                    row.department,
+                    row.dateFormatted
+                ]);
+            });
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Merge first row (title) across all columns
+            if (!ws['!merges']) ws['!merges'] = [];
+            ws['!merges'].push({
+                s: { r: 0, c: 0 }, // start: row 0, column 0
+                e: { r: 0, c: 4 }  // end: row 0, column 4 (5 columns total)
+            });
+            
+            // Style the title cell (bold and centered)
+            if (!ws['A1'].s) ws['A1'].s = {};
+            ws['A1'].s = {
+                font: { bold: true, sz: 14 },
+                alignment: { horizontal: 'center', vertical: 'center' }
+            };
+            
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 15 }, // Číslo čipu
+                { wch: 15 }, // Osobní číslo
+                { wch: 25 }, // Jméno
+                { wch: 20 }, // Odbor
+                { wch: 15 }  // Datum výpůjčky
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Výpůjčky');
+            XLSX.writeFile(wb, `vypujcky_${year}-${String(month).padStart(2, '0')}.xlsx`);
+        }
+
+        // Data Management
+        function initializeDataManagement() {
+            // Export all data
+            document.getElementById('export-all-data').addEventListener('click', exportAllData);
+            
+            // Import all data
+            document.getElementById('import-all-data-btn').addEventListener('click', () => {
+                document.getElementById('import-all-data').click();
+            });
+            document.getElementById('import-all-data').addEventListener('change', handleImportAllData);
+            
+            // Delete all data
+            document.getElementById('delete-all-data').addEventListener('click', deleteAllData);
+            
+            // Update stats and months
+            updateDataStats();
+            updateMonthsOverview();
+        }
+
+        function updateDataStats() {
+            document.getElementById('stats-chips').textContent = chips.length;
+            document.getElementById('stats-employees').textContent = employees.length;
+            document.getElementById('stats-borrowings').textContent = borrowings.length;
+        }
+
+        function getMonthsWithBorrowings() {
+            const monthsSet = new Set();
+            
+            borrowings.forEach(b => {
+                const startDate = new Date(b.startDate);
+                const endDate = b.endDate ? new Date(b.endDate) : new Date();
+                
+                // Add all months between start and end date
+                let currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+                const lastDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+                
+                while (currentDate <= lastDate) {
+                    const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                    monthsSet.add(monthKey);
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+            });
+            
+            // Convert to array and sort descending (newest first)
+            return Array.from(monthsSet).sort().reverse();
+        }
+
+        function updateMonthsOverview() {
+            const container = document.getElementById('months-overview');
+            const months = getMonthsWithBorrowings();
+            
+            if (months.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-gray); font-style: italic;">Nejsou žádné výpůjčky.</div>';
+                return;
+            }
+            
+            const monthNames = [
+                'leden', 'únor', 'březen', 'duben', 'květen', 'červen',
+                'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'
+            ];
+            
+            let html = '<div style="display: grid; gap: 10px;">';
+            
+            months.forEach(monthKey => {
+                const [year, month] = monthKey.split('-');
+                const monthName = monthNames[parseInt(month) - 1];
+                
+                // Count borrowings for this month
+                const count = countBorrowingsInMonth(monthKey);
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border: 1px solid var(--border-color); border-radius: 6px;">
+                        <div>
+                            <strong style="font-size: 16px;">${monthName} ${year}</strong>
+                            <div style="font-size: 13px; color: var(--text-gray); margin-top: 3px;">
+                                ${count} ${count === 1 ? 'výpůjčka' : count >= 2 && count <= 4 ? 'výpůjčky' : 'výpůjček'}
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-small" onclick="deleteMonthBorrowings('${monthKey}', '${monthName} ${year}')">
+                            Smazat
+                        </button>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function countBorrowingsInMonth(monthKey) {
+            const [year, month] = monthKey.split('-').map(Number);
+            const monthStart = new Date(year, month - 1, 1);
+            const monthEnd = new Date(year, month, 0, 23, 59, 59);
+            
+            return borrowings.filter(b => {
+                const bStart = new Date(b.startDate);
+                const bEnd = b.endDate ? new Date(b.endDate) : new Date();
+                
+                // Check if borrowing overlaps with this month
+                return bStart <= monthEnd && bEnd >= monthStart;
+            }).length;
+        }
+
+        async function deleteMonthBorrowings(monthKey, monthName) {
+            const count = countBorrowingsInMonth(monthKey);
+            
+            if (!await CustomDialog.confirm(`Opravdu chcete smazat všechny výpůjčky z měsíce ${monthName}?\n\nBude smazáno ${count} ${count === 1 ? 'výpůjčka' : count >= 2 && count <= 4 ? 'výpůjčky' : 'výpůjček'}.\n\nTuto akci nelze vrátit zpět!`)) {
+                return;
+            }
+            
+            const [year, month] = monthKey.split('-').map(Number);
+            const monthStart = new Date(year, month - 1, 1);
+            const monthEnd = new Date(year, month, 0, 23, 59, 59);
+            
+            // Filter out borrowings that overlap with this month
+            borrowings = borrowings.filter(b => {
+                const bStart = new Date(b.startDate);
+                const bEnd = b.endDate ? new Date(b.endDate) : new Date();
+                
+                // Keep borrowing if it does NOT overlap with this month
+                return !(bStart <= monthEnd && bEnd >= monthStart);
+            });
+            
+            Storage.set('borrowings', borrowings);
+            renderBorrowings();
+            updateDataStats();
+            updateMonthsOverview();
+            
+            await CustomDialog.alert(`Bylo smazáno ${count} ${count === 1 ? 'výpůjčka' : count >= 2 && count <= 4 ? 'výpůjčky' : 'výpůjček'} z měsíce ${monthName}.`);
+        }
+
+        async function exportAllData() {
+            const allData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                chips: chips,
+                employees: employees,
+                borrowings: borrowings
+            };
+            
+            // Create filename with timestamp
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const filename = `evidence-plavenek-${yyyy}-${mm}-${dd}-${hh}${min}.json`;
+            
+            // Create and download file
+            const dataStr = JSON.stringify(allData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            await CustomDialog.alert('Data byla úspěšně exportována.');
+        }
+
+        async function handleImportAllData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!await CustomDialog.confirm('VAROVÁNÍ: Import dat přepíše všechna současná data v aplikaci. Opravdu chcete pokračovat?')) {
+                e.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Validate data structure
+                    if (!importedData.chips || !importedData.employees || !importedData.borrowings) {
+                        await CustomDialog.alert('Chyba: Neplatný formát souboru. Soubor neobsahuje všechna požadovaná data.', 'Chyba');
+                        return;
+                    }
+                    
+                    // Import data
+                    chips = importedData.chips || [];
+                    employees = importedData.employees || [];
+                    borrowings = importedData.borrowings || [];
+                    
+                    // Save to localStorage
+                    Storage.set('chips', chips);
+                    Storage.set('employees', employees);
+                    Storage.set('borrowings', borrowings);
+                    
+                    // Refresh all displays
+                    renderChips();
+                    renderEmployees();
+                    renderBorrowings();
+                    updateDataStats();
+                    updateMonthsOverview();
+                    
+                    await CustomDialog.alert(`Data byla úspěšně importována!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
+                } catch (error) {
+                    await CustomDialog.alert('Chyba při importu dat: ' + error.message, 'Chyba');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        async function deleteAllData() {
+            const confirmation = await CustomDialog.prompt('VAROVÁNÍ: Tato akce smaže úplně všechna data!\n\nPro potvrzení napište "SMAZAT" (bez uvozovek):', '', 'Varování');
+            
+            if (confirmation !== 'SMAZAT') {
+                await CustomDialog.alert('Mazání bylo zrušeno.');
+                return;
+            }
+            
+            // Clear data
+            chips = [];
+            employees = [];
+            borrowings = [];
+            
+            // Clear localStorage
+            Storage.set('chips', []);
+            Storage.set('employees', []);
+            Storage.set('borrowings', []);
+            
+            // Refresh all displays
+            renderChips();
+            renderEmployees();
+            renderBorrowings();
+            updateDataStats();
+            updateMonthsOverview();
+            
+            await CustomDialog.alert('Všechna data byla smazána.');
+        }
+    </script>
+</body>
+</html>
