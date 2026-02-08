@@ -1,0 +1,104 @@
+<?php
+/**
+ * Statistics Receiver Endpoint
+ * Receives analytics events and stores them in JSON Lines format
+ * One file per month: stats-YYYY-MM.jsonl
+ */
+
+// CORS Configuration
+$allowedOrigins = [
+    'https://l-ra.github.io',
+    'http://localhost',
+    'http://localhost:8000',
+    'http://127.0.0.1',
+    'http://127.0.0.1:8000'
+];
+
+// Get the origin of the request
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+// Check if origin is allowed
+$isAllowed = false;
+foreach ($allowedOrigins as $allowedOrigin) {
+    if ($origin === $allowedOrigin || strpos($origin, $allowedOrigin) === 0) {
+        $isAllowed = true;
+        break;
+    }
+}
+
+// Set CORS headers if origin is allowed
+if ($isAllowed) {
+    header("Access-Control-Allow-Origin: $origin");
+    header("Access-Control-Allow-Methods: POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type");
+    header("Access-Control-Max-Age: 86400"); // 24 hours
+}
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+// Only accept POST requests
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
+}
+
+// Get JSON payload
+$json = file_get_contents('php://input');
+$data = json_decode($json, true);
+
+// Validate data
+if (!$data || !isset($data['instanceId']) || !isset($data['event']) || !isset($data['timestamp'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid data format']);
+    exit;
+}
+
+// Validate timestamp format
+$timestamp = $data['timestamp'];
+if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $timestamp)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid timestamp format']);
+    exit;
+}
+
+// Extract year and month from timestamp
+$dateTime = new DateTime($timestamp);
+$yearMonth = $dateTime->format('Y-m');
+
+// Create stats directory if it doesn't exist
+$statsDir = __DIR__ . '/stats';
+if (!is_dir($statsDir)) {
+    mkdir($statsDir, 0755, true);
+}
+
+// Determine filename based on month
+$filename = $statsDir . '/stats-' . $yearMonth . '.jsonl';
+
+// Prepare log entry
+$logEntry = [
+    'instanceId' => $data['instanceId'],
+    'event' => $data['event'],
+    'timestamp' => $timestamp,
+    'data' => isset($data['data']) ? $data['data'] : null,
+    'userAgent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : null,
+    'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null,
+    'received' => date('c')
+];
+
+// Append to file (JSON Lines format - one JSON object per line)
+$success = file_put_contents($filename, json_encode($logEntry) . "\n", FILE_APPEND | LOCK_EX);
+
+if ($success === false) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Failed to save data']);
+    exit;
+}
+
+// Return success
+http_response_code(200);
+echo json_encode(['success' => true, 'message' => 'Event recorded']);

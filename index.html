@@ -1035,6 +1035,82 @@
             }
         };
 
+        // Analytics & Statistics
+        const Analytics = {
+            instanceId: null,
+            endpoint: null,
+            enabled: false,
+
+            // Generate UUID v4
+            generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            },
+
+            // Initialize instance ID
+            init() {
+                // Get or create instance ID (stored separately from app data)
+                this.instanceId = localStorage.getItem('analytics_instance_id');
+                if (!this.instanceId) {
+                    this.instanceId = this.generateUUID();
+                    localStorage.setItem('analytics_instance_id', this.instanceId);
+                    this.track('first_use', { timestamp: new Date().toISOString() });
+                }
+
+                // Load config
+                this.loadConfig();
+            },
+
+            // Load configuration
+            async loadConfig() {
+                try {
+                    const response = await fetch('config.json');
+                    if (response.ok) {
+                        const config = await response.json();
+                        this.endpoint = config.statsEndpoint;
+                        this.enabled = true;
+                    } else {
+                        throw new Error('Config not found');
+                    }
+                } catch (error) {
+                    // Use default endpoint
+                    this.endpoint = 'https://app-stats.apps2.r73.info/plavenky-stat/receive-stats.php';
+                    this.enabled = true;
+                }
+            },
+
+            // Track event
+            async track(eventName, eventData = {}) {
+                if (!this.enabled || !this.endpoint) {
+                    return;
+                }
+
+                const payload = {
+                    instanceId: this.instanceId,
+                    event: eventName,
+                    timestamp: new Date().toISOString(),
+                    data: eventData
+                };
+
+                try {
+                    await fetch(this.endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                        mode: 'cors'
+                    });
+                } catch (error) {
+                    // Silently fail - don't interrupt user experience
+                    console.debug('Analytics tracking failed:', error);
+                }
+            }
+        };
+
         // Data Management
         let chips = Storage.get('chips', []);
         let employees = Storage.get('employees', []);
@@ -1042,6 +1118,9 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize analytics
+            Analytics.init();
+            
             initializeTabs();
             initializeChips();
             initializeEmployees();
@@ -1081,17 +1160,17 @@
                 btn.addEventListener('click', () => {
                     const tabId = btn.dataset.tab;
                     
+                    // Always close mobile menu (CSS ensures it stays visible on desktop)
+                    if (tabs && menuIcon) {
+                        tabs.classList.remove('open');
+                        menuIcon.textContent = '☰';
+                    }
+                    
                     tabBtns.forEach(b => b.classList.remove('active'));
                     tabContents.forEach(c => c.classList.remove('active'));
                     
                     btn.classList.add('active');
                     document.getElementById(`tab-${tabId}`).classList.add('active');
-                    
-                    // Close mobile menu after selection
-                    if (window.innerWidth <= 768) {
-                        tabs.classList.remove('open');
-                        menuIcon.textContent = '☰';
-                    }
                     
                     // Update stats when switching to data management tab
                     if (tabId === 'data-management') {
@@ -1126,6 +1205,7 @@
                 
                 chips.push(chip);
                 Storage.set('chips', chips);
+                Analytics.track('chip_added', { identifier: identifier });
                 form.reset();
                 renderChips();
             });
@@ -1186,6 +1266,7 @@
             
             chips = chips.filter(c => c.id !== id);
             Storage.set('chips', chips);
+            Analytics.track('chip_deleted', { chipId: id });
             renderChips();
         }
 
@@ -1216,6 +1297,7 @@
                     
                     Storage.set('chips', chips);
                     renderChips();
+                    Analytics.track('chips_imported', { count: imported });
                     await CustomDialog.alert(`Importováno ${imported} čipů.`);
                 } catch (error) {
                     await CustomDialog.alert('Chyba při importu souboru: ' + error.message, 'Chyba');
@@ -1239,6 +1321,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Čipy');
             XLSX.writeFile(wb, 'cipy.xlsx');
+            Analytics.track('chips_exported', { count: chips.length });
         }
 
         // Employees Management
@@ -1264,6 +1347,7 @@
                 
                 employees.push(employee);
                 Storage.set('employees', employees);
+                Analytics.track('employee_added', { employeeNumber: number });
                 form.reset();
                 renderEmployees();
             });
@@ -1331,6 +1415,7 @@
             
             employees = employees.filter(e => e.id !== id);
             Storage.set('employees', employees);
+            Analytics.track('employee_deleted', { employeeId: id });
             renderEmployees();
         }
 
@@ -1377,6 +1462,7 @@
                     };
                     
                     Storage.set('employees', employees);
+                    Analytics.track('employee_updated', { employeeId: id });
                     closeEditEmployeeModal();
                     renderEmployees();
                     // Re-render borrowings to update employee info
@@ -1417,6 +1503,7 @@
                     
                     Storage.set('employees', employees);
                     renderEmployees();
+                    Analytics.track('employees_imported', { count: imported });
                     await CustomDialog.alert(`Importováno ${imported} zaměstnanců.`);
                 } catch (error) {
                     await CustomDialog.alert('Chyba při importu souboru: ' + error.message, 'Chyba');
@@ -1442,6 +1529,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Zaměstnanci');
             XLSX.writeFile(wb, 'zamestnanci.xlsx');
+            Analytics.track('employees_exported', { count: employees.length });
         }
 
         // Autocomplete functionality
@@ -1617,6 +1705,7 @@
                 
                 borrowings.push(borrowing);
                 Storage.set('borrowings', borrowings);
+                Analytics.track('borrowing_created', { chipsCount: newBorrowingSelectedChipIds.length });
                 
                 // Reset form
                 document.getElementById('new-borrowing-form').reset();
@@ -1882,6 +1971,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Výpůjčky');
             XLSX.writeFile(wb, 'vypujcky_vse.xlsx');
+            Analytics.track('borrowings_list_exported', { count: borrowings.length });
         }
 
         function handleBorrowingsImport(e) {
@@ -1961,6 +2051,7 @@
                     
                     Storage.set('borrowings', borrowings);
                     renderBorrowings();
+                    Analytics.track('borrowings_imported', { count: imported, skipped: skipped });
                     
                     let message = `Importováno ${imported} výpůjček.`;
                     if (skipped > 0) {
@@ -1986,6 +2077,7 @@
             borrowing.endDate = today.toISOString().split('T')[0];
             
             Storage.set('borrowings', borrowings);
+            Analytics.track('borrowing_ended', { borrowingId: id });
             renderBorrowings();
         }
 
@@ -2168,6 +2260,7 @@
                 };
                 
                 Storage.set('borrowings', borrowings);
+                Analytics.track('borrowing_updated', { borrowingId: id });
                 closeEditModal();
                 renderBorrowings();
             }
@@ -2307,6 +2400,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Výpůjčky');
             XLSX.writeFile(wb, `vypujcky_${year}-${String(month).padStart(2, '0')}.xlsx`);
+            Analytics.track('borrowings_exported_xlsx', { month: monthInput, rowCount: exportData.length });
         }
 
         // Data Management
@@ -2437,6 +2531,7 @@
             updateDataStats();
             updateMonthsOverview();
             
+            Analytics.track('month_borrowings_deleted', { month: monthKey, count: count });
             await CustomDialog.alert(`Bylo smazáno ${count} ${count === 1 ? 'výpůjčka' : count >= 2 && count <= 4 ? 'výpůjčky' : 'výpůjček'} z měsíce ${monthName}.`);
         }
 
@@ -2470,6 +2565,7 @@
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
+            Analytics.track('all_data_exported', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
             await CustomDialog.alert('Data byla úspěšně exportována.');
         }
 
@@ -2510,6 +2606,7 @@
                     updateDataStats();
                     updateMonthsOverview();
                     
+                    Analytics.track('all_data_imported', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
                     await CustomDialog.alert(`Data byla úspěšně importována!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
                 } catch (error) {
                     await CustomDialog.alert('Chyba při importu dat: ' + error.message, 'Chyba');
@@ -2553,6 +2650,7 @@
         async function loadHelpContent() {
             if (helpContentLoaded) return;
             
+            Analytics.track('help_viewed');
             const container = document.getElementById('help-content');
             
             // Configure marked options
