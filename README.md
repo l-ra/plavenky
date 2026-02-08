@@ -75,7 +75,7 @@ Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlíž
 ### 7. Nápověda
 - Zobrazuje celou dokumentaci aplikace přímo v prohlížeči
 - Formátovaný obsah README.md v přehledné podobě
-- Funguje i offline (používá inline fallback)
+- **Poznámka**: Při spuštění aplikace ze souboru (file://) se zobrazí pouze odkaz na README.md kvůli bezpečnostním omezením prohlížeče. Pro plnou funkčnost spusťte aplikaci přes webserver.
 
 ## Technické informace
 
