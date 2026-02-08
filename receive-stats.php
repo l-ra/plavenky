@@ -88,15 +88,45 @@ if (!is_dir($statsDir)) {
     }
 }
 
+// Sanitize data - only allow non-sensitive aggregate fields
+function sanitizeEventData($data) {
+    if (!is_array($data) || empty($data)) {
+        return null;
+    }
+    
+    // Whitelist of allowed fields (only aggregate/non-sensitive data)
+    $allowedFields = [
+        'count',        // Generic count
+        'skipped',      // Number of skipped items
+        'rowCount',     // Number of rows
+        'chipsCount',   // Number of chips (not identifiers)
+        'chips',        // Count field
+        'employees',    // Count field
+        'borrowings'    // Count field
+    ];
+    
+    $sanitized = [];
+    foreach ($allowedFields as $field) {
+        if (isset($data[$field]) && (is_int($data[$field]) || is_numeric($data[$field]))) {
+            $sanitized[$field] = (int)$data[$field];
+        }
+    }
+    
+    return !empty($sanitized) ? $sanitized : null;
+}
+
 // Determine filename based on month
 $filename = $statsDir . '/stats-' . $yearMonth . '.jsonl';
+
+// Sanitize event data to remove any sensitive information
+$sanitizedData = isset($data['data']) ? sanitizeEventData($data['data']) : null;
 
 // Prepare log entry
 $logEntry = [
     'instanceId' => $data['instanceId'],
     'event' => $data['event'],
     'timestamp' => $timestamp,
-    'data' => isset($data['data']) ? $data['data'] : null,
+    'data' => $sanitizedData,
     'userAgent' => isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : null,
     'ip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null,
     'received' => date('c')

@@ -1,5 +1,21 @@
 # Konfigurace statistik
 
+## Ochrana soukromí
+
+Systém statistik **nesbírá žádná citlivá data** z aplikace. Zaznamenávají se pouze:
+- Typ události (např. "chip_added", "employee_deleted")
+- Agregované počty (např. počet importovaných záznamů)
+- ID instance (náhodně generované UUID)
+- Časové razítko události
+
+**Co se NESBÍRÁ:**
+- ❌ Identifikátory čipů
+- ❌ Čísla nebo jména zaměstnanců
+- ❌ Konkrétní data výpůjček
+- ❌ Jakékoliv osobní údaje
+
+Backend automaticky filtruje a odmítá jakákoliv citlivá data, i kdyby byla omylem zaslána.
+
 ## Nastavení složky pro statistiky
 
 Statistiky se ukládají do složky, která je určena proměnnou prostředí `STATS_DIR`.
@@ -63,4 +79,56 @@ Příklad nastavení oprávnění:
 sudo mkdir -p /working/plavenky-stats
 sudo chown www-data:www-data /working/plavenky-stats
 sudo chmod 755 /working/plavenky-stats
+```
+
+## Sbírané události
+
+Systém sleduje následující typy událostí:
+
+### První použití
+- `first_use` - První spuštění aplikace na dané instanci
+
+### Správa čipů
+- `chip_added` - Přidán nový čip
+- `chip_deleted` - Smazán čip
+- `chips_imported` - Import čipů z XLSX (obsahuje: count)
+- `chips_exported` - Export čipů do XLSX (obsahuje: count)
+
+### Správa zaměstnanců
+- `employee_added` - Přidán nový zaměstnanec
+- `employee_updated` - Upraven zaměstnanec
+- `employee_deleted` - Smazán zaměstnanec
+- `employees_imported` - Import zaměstnanců z XLSX (obsahuje: count)
+- `employees_exported` - Export zaměstnanců do XLSX (obsahuje: count)
+
+### Správa výpůjček
+- `borrowing_created` - Vytvořena nová výpůjčka (obsahuje: chipsCount)
+- `borrowing_updated` - Upravena výpůjčka
+- `borrowing_ended` - Ukončena výpůjčka
+- `borrowings_imported` - Import výpůjček z XLSX (obsahuje: count, skipped)
+- `borrowings_list_exported` - Export seznamu výpůjček (obsahuje: count)
+- `borrowings_exported_xlsx` - Export výpůjček za měsíc (obsahuje: rowCount)
+- `month_borrowings_deleted` - Smazány výpůjčky za měsíc (obsahuje: count)
+
+### Správa dat
+- `all_data_imported` - Import všech dat (obsahuje: chips, employees, borrowings - počty)
+- `all_data_exported` - Export všech dat (obsahuje: chips, employees, borrowings - počty)
+
+### Ostatní
+- `help_viewed` - Zobrazena nápověda
+
+## Příklad záznamu
+
+```json
+{
+  "instanceId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "event": "chips_imported",
+  "timestamp": "2026-02-08T14:30:45.123Z",
+  "data": {
+    "count": 25
+  },
+  "userAgent": "Mozilla/5.0...",
+  "ip": "192.168.1.1",
+  "received": "2026-02-08T14:30:45+00:00"
+}
 ```

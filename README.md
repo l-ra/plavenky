@@ -126,3 +126,25 @@ Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlíž
 - Aplikace vyžaduje povolený JavaScript
 - Pro import/export XLSX je potřeba připojení k internetu (kvůli načtení knihovny SheetJS z CDN)
 - Export/import JSON funguje bez připojení k internetu
+
+## Statistiky a ochrana soukromí
+
+Aplikace obsahuje volitelný systém sběru anonymních statistik o používání.
+
+### Co se sbírá
+- Typ události (např. "přidán čip", "vytvořena výpůjčka")
+- Agregované počty (např. kolik záznamů bylo importováno)
+- ID instance (náhodně generované UUID pro každou instalaci)
+- Časové razítko události
+
+### Co se NESBÍRÁ
+- ❌ Žádné identifikátory čipů
+- ❌ Žádná čísla nebo jména zaměstnanců  
+- ❌ Žádná konkrétní data o výpůjčkách
+- ❌ Žádné osobní údaje
+
+### Technické detaily
+- Instance ID je uloženo samostatně a **není součástí exportu aplikačních dat**
+- Backend automaticky filtruje a odmítá jakákoliv citlivá data
+- Statistiky jsou ukládány ve formátu JSON Lines, jeden soubor za měsíc
+- Podrobnosti viz [STATS-README.md](STATS-README.md)
