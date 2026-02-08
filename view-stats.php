@@ -4,8 +4,12 @@
  * View analytics data collected from the application
  */
 
-// Configuration
-$statsDir = __DIR__ . '/stats';
+// Configuration - get stats directory from environment variable or use default
+$statsDir = getenv('STATS_DIR');
+if ($statsDir === false || $statsDir === '') {
+    $statsDir = '/working/plavenky-stats/';
+}
+$statsDir = rtrim($statsDir, '/');
 
 // Get all stats files
 function getStatsFiles($dir) {

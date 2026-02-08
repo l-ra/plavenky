@@ -70,10 +70,22 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $timestamp)) {
 $dateTime = new DateTime($timestamp);
 $yearMonth = $dateTime->format('Y-m');
 
+// Get stats directory from environment variable or use default
+$statsDir = getenv('STATS_DIR');
+if ($statsDir === false || $statsDir === '') {
+    $statsDir = '/working/plavenky-stats/';
+}
+
+// Remove trailing slash if present and add it back for consistency
+$statsDir = rtrim($statsDir, '/');
+
 // Create stats directory if it doesn't exist
-$statsDir = __DIR__ . '/stats';
 if (!is_dir($statsDir)) {
-    mkdir($statsDir, 0755, true);
+    if (!mkdir($statsDir, 0755, true)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to create stats directory']);
+        exit;
+    }
 }
 
 // Determine filename based on month
