@@ -1,0 +1,21 @@
+# Statistics data
+stats/
+*.jsonl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local environment
+.env
+
+# Backup files
+*.bak
+*~
