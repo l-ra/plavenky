@@ -85,8 +85,9 @@ sudo chmod 755 /working/plavenky-stats
 
 Systém sleduje následující typy událostí:
 
-### První použití
+### Životní cyklus aplikace
 - `first_use` - První spuštění aplikace na dané instanci
+- `app_started` - Spuštění aplikace (načtení stránky)
 
 ### Správa čipů
 - `chip_added` - Přidán nový čip
@@ -117,8 +118,22 @@ Systém sleduje následující typy událostí:
 ### Ostatní
 - `help_viewed` - Zobrazena nápověda
 
-## Příklad záznamu
+## Příklady záznamů
 
+### Spuštění aplikace
+```json
+{
+  "instanceId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "event": "app_started",
+  "timestamp": "2026-02-08T14:30:45.123Z",
+  "data": null,
+  "userAgent": "Mozilla/5.0...",
+  "ip": "192.168.1.1",
+  "received": "2026-02-08T14:30:45+00:00"
+}
+```
+
+### Import s agregovanými daty
 ```json
 {
   "instanceId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",

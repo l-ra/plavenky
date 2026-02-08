@@ -1054,14 +1054,21 @@
             init() {
                 // Get or create instance ID (stored separately from app data)
                 this.instanceId = localStorage.getItem('analytics_instance_id');
-                if (!this.instanceId) {
+                const isFirstUse = !this.instanceId;
+                
+                if (isFirstUse) {
                     this.instanceId = this.generateUUID();
                     localStorage.setItem('analytics_instance_id', this.instanceId);
-                    this.track('first_use', { timestamp: new Date().toISOString() });
+                    this.track('first_use');
                 }
 
                 // Load config
                 this.loadConfig();
+                
+                // Track app startup (every time the page loads)
+                if (!isFirstUse) {
+                    this.track('app_started');
+                }
             },
 
             // Load configuration
