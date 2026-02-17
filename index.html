@@ -256,15 +256,42 @@
             color: white;
             padding: 6px 12px;
             border-radius: 20px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
             font-size: 14px;
         }
 
+        table .chip-tag {
+            padding: 3px 8px;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        td.chips-cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+
         .chip-tag.unavailable {
             background: #ff9800;
             border: 2px solid #f57c00;
+        }
+
+        .chip-tag.conflict {
+            background: #ff6b6b;
+            border: 2px solid #c92a2a;
+            cursor: pointer;
+        }
+
+        .chip-tag.conflict-highlight {
+            background: #ffd43b;
+            border: 2px solid #fab005;
+            box-shadow: 0 0 10px rgba(250, 176, 5, 0.6);
+            transform: scale(1.1);
+            transition: all 0.2s ease;
         }
 
         .chip-tag button {
@@ -1984,6 +2011,44 @@
             document.getElementById('export-borrowings-list').addEventListener('click', exportBorrowingsList);
         }
 
+        // Detect chip conflicts between borrowings
+        function getChipConflicts() {
+            const conflicts = {}; // chipId -> array of borrowing IDs with conflicts
+            
+            borrowings.forEach((b1, idx1) => {
+                borrowings.forEach((b2, idx2) => {
+                    if (idx1 >= idx2) return; // Avoid duplicate checks
+                    
+                    // Check date overlap
+                    const start1 = new Date(b1.startDate);
+                    const end1 = b1.endDate ? new Date(b1.endDate) : new Date(b1.startDate);
+                    const start2 = new Date(b2.startDate);
+                    const end2 = b2.endDate ? new Date(b2.endDate) : new Date(b2.startDate);
+                    
+                    const hasOverlap = start1 <= end2 && end1 >= start2;
+                    
+                    if (hasOverlap) {
+                        // Check for common chips
+                        const commonChips = b1.chips.filter(chipId => b2.chips.includes(chipId));
+                        
+                        commonChips.forEach(chipId => {
+                            if (!conflicts[chipId]) {
+                                conflicts[chipId] = [];
+                            }
+                            if (!conflicts[chipId].includes(b1.id)) {
+                                conflicts[chipId].push(b1.id);
+                            }
+                            if (!conflicts[chipId].includes(b2.id)) {
+                                conflicts[chipId].push(b2.id);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            return conflicts;
+        }
+
         function renderBorrowings() {
             const container = document.getElementById('borrowings-list');
             
@@ -1991,6 +2056,9 @@
                 container.innerHTML = '<div class="empty-state">Zatím nejsou žádné výpůjčky.</div>';
                 return;
             }
+            
+            // Get chip conflicts
+            const chipConflicts = getChipConflicts();
             
             // Get filter values
             const filterEmployee = document.getElementById('filter-employee').value.toLowerCase().trim();
@@ -2077,10 +2145,28 @@
                     <tbody>
                         ${sorted.map(b => {
                             const employee = employees.find(e => e.id === b.employeeId);
-                            const chipList = b.chips.map(chipId => {
+                            
+                            // Render chips as tags
+                            const chipTags = b.chips.map(chipId => {
                                 const chip = chips.find(c => c.id === chipId);
-                                return chip ? chip.identifier : 'N/A';
-                            }).join(', ');
+                                if (!chip) return '<span class="chip-tag">N/A</span>';
+                                
+                                const hasConflict = chipConflicts[chipId] && chipConflicts[chipId].includes(b.id);
+                                const conflictClass = hasConflict ? ' conflict' : '';
+                                const conflictIcon = hasConflict ? '⚠️ ' : '';
+                                
+                                // Create a unique identifier for this chip instance
+                                const chipKey = `chip-${chipId}-borrowing-${b.id}`;
+                                const conflictBorrowings = hasConflict ? chipConflicts[chipId].join(',') : '';
+                                
+                                return `<span class="chip-tag${conflictClass}" 
+                                             data-chip-id="${chipId}" 
+                                             data-borrowing-id="${b.id}"
+                                             data-conflict-borrowings="${conflictBorrowings}"
+                                             data-chip-key="${chipKey}"
+                                             onmouseenter="highlightConflictingChips(${chipId}, ${b.id}, '${conflictBorrowings}')"
+                                             onmouseleave="clearConflictHighlight()">${conflictIcon}${chip.identifier}</span>`;
+                            }).join(' ');
                             
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
@@ -2090,7 +2176,7 @@
                                 <tr>
                                     <td>${employee ? `${employee.name} (${employee.employeeNumber})` : 'N/A'}</td>
                                     <td>${employee && employee.department ? employee.department : '-'}</td>
-                                    <td>${chipList}</td>
+                                    <td class="chips-cell">${chipTags}</td>
                                     <td>${formatDate(b.startDate)}</td>
                                     <td>${b.endDate ? formatDate(b.endDate) : '-'}</td>
                                     <td>
@@ -2118,6 +2204,26 @@
         function formatDate(dateStr) {
             const date = new Date(dateStr);
             return date.toLocaleDateString('cs-CZ');
+        }
+
+        function highlightConflictingChips(chipId, currentBorrowingId, conflictBorrowingsStr) {
+            if (!conflictBorrowingsStr) return;
+            
+            const conflictBorrowings = conflictBorrowingsStr.split(',').map(id => parseInt(id));
+            
+            // Highlight all instances of this chip in conflicting borrowings
+            document.querySelectorAll(`[data-chip-id="${chipId}"]`).forEach(el => {
+                const borrowingId = parseInt(el.getAttribute('data-borrowing-id'));
+                if (conflictBorrowings.includes(borrowingId)) {
+                    el.classList.add('conflict-highlight');
+                }
+            });
+        }
+
+        function clearConflictHighlight() {
+            document.querySelectorAll('.conflict-highlight').forEach(el => {
+                el.classList.remove('conflict-highlight');
+            });
         }
 
         async function deleteBorrowing(id) {
