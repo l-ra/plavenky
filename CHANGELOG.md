@@ -18,6 +18,7 @@ a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 - Zobrazení identifikátoru instance v patičce aplikace (zkrácená forma s plnou verzí v tooltip)
 
 ### Změněno
+- **DŮLEŽITÉ**: Logika aktivních výpůjček - výpůjčka je nyní aktivní pouze pokud nemá vyplněné datum konce (dříve byla aktivní i s budoucím datem konce)
 - Excel export/import je nyní primární volbou v Správě dat
 - JSON export/import je sekundární volbou
 - Čipy v seznamu výpůjček jsou zobrazeny jako tagy místo textu oddělovaného čárkami

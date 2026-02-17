@@ -2130,7 +2130,7 @@
                 
                 // Filter by status
                 if (filterStatus !== 'all') {
-                    const isActive = !b.endDate || new Date(b.endDate) >= today;
+                    const isActive = !b.endDate;
                     if (filterStatus === 'active' && !isActive) return false;
                     if (filterStatus === 'ended' && isActive) return false;
                 }
@@ -2200,9 +2200,7 @@
                                              onmouseleave="clearConflictHighlight()">${conflictIcon}${chip.identifier}</span>`;
                             }).join(' ');
                             
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const isActive = !b.endDate || new Date(b.endDate) >= today;
+                            const isActive = !b.endDate;
                             
                             return `
                                 <tr>
