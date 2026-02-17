@@ -235,6 +235,15 @@
             background: var(--bg-gray);
         }
 
+        .autocomplete-suggestion.unavailable {
+            background: #fff3cd;
+            border-left: 3px solid #ff9800;
+        }
+
+        .autocomplete-suggestion.unavailable:hover {
+            background: #ffe8a1;
+        }
+
         .chip-list {
             display: flex;
             flex-wrap: wrap;
@@ -251,6 +260,11 @@
             align-items: center;
             gap: 8px;
             font-size: 14px;
+        }
+
+        .chip-tag.unavailable {
+            background: #ff9800;
+            border: 2px solid #f57c00;
         }
 
         .chip-tag button {
@@ -677,6 +691,9 @@
                         <div class="autocomplete-suggestions" id="chip-suggestions"></div>
                     </div>
                     <div class="chip-list" id="selected-chips"></div>
+                    <div id="chip-availability-warning" style="display: none; color: #ff6b6b; margin-top: 10px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                        ⚠️ <strong>Upozornění:</strong> Některé vybrané čipy jsou již evidovány v jiné výpůjčce ve stejném období.
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Vytvořit výpůjčku</button>
@@ -887,6 +904,9 @@
                         <div class="autocomplete-suggestions" id="edit-chip-suggestions"></div>
                     </div>
                     <div class="chip-list" id="edit-selected-chips"></div>
+                    <div id="edit-chip-availability-warning" style="display: none; color: #ff6b6b; margin-top: 10px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                        ⚠️ <strong>Upozornění:</strong> Některé vybrané čipy jsou již evidovány v jiné výpůjčce ve stejném období.
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -1610,6 +1630,14 @@
             const input = document.getElementById(inputId);
             const suggestionsEl = document.getElementById(suggestionsId);
             const hiddenInput = document.getElementById(hiddenInputId);
+            let currentItems = [];
+            
+            const selectItem = (item) => {
+                if (hiddenInput) hiddenInput.value = item.id;
+                input.value = item.display;
+                suggestionsEl.style.display = 'none';
+                if (onSelect) onSelect(item);
+            };
             
             input.addEventListener('input', () => {
                 const value = input.value.toLowerCase().trim();
@@ -1617,11 +1645,13 @@
                 if (value.length === 0) {
                     suggestionsEl.innerHTML = '';
                     suggestionsEl.style.display = 'none';
+                    currentItems = [];
                     if (hiddenInput) hiddenInput.value = '';
                     return;
                 }
                 
                 const items = getItems(value);
+                currentItems = items;
                 
                 if (items.length === 0) {
                     suggestionsEl.innerHTML = '';
@@ -1638,12 +1668,17 @@
                     el.addEventListener('click', () => {
                         const id = parseInt(el.dataset.id);
                         const selectedItem = items.find(i => i.id === id);
-                        if (hiddenInput) hiddenInput.value = id;
-                        input.value = selectedItem.display;
-                        suggestionsEl.style.display = 'none';
-                        if (onSelect) onSelect(selectedItem);
+                        selectItem(selectedItem);
                     });
                 });
+            });
+            
+            // Handle Enter key - select if only one suggestion
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && currentItems.length === 1 && suggestionsEl.style.display !== 'none') {
+                    e.preventDefault();
+                    selectItem(currentItems[0]);
+                }
             });
             
             document.addEventListener('click', (e) => {
@@ -1676,6 +1711,7 @@
             const chipSearchInput = document.getElementById('chip-search');
             const chipSuggestionsEl = document.getElementById('chip-suggestions');
             const selectedChipsContainer = document.getElementById('selected-chips');
+            let currentChipSuggestions = [];
             
             chipSearchInput.addEventListener('input', () => {
                 const value = chipSearchInput.value.toLowerCase().trim();
@@ -1685,14 +1721,15 @@
                 if (value.length === 0) {
                     chipSuggestionsEl.innerHTML = '';
                     chipSuggestionsEl.style.display = 'none';
+                    currentChipSuggestions = [];
                     return;
                 }
                 
-                const availableChips = getAvailableChips(startDate, endDate, newBorrowingSelectedChipIds);
-                const filtered = availableChips.filter(c => 
-                    c.identifier.toLowerCase().includes(value) && 
-                    !newBorrowingSelectedChipIds.includes(c.id)
+                const allChips = getChipsWithAvailability(startDate, endDate, newBorrowingSelectedChipIds);
+                const filtered = allChips.filter(c => 
+                    c.identifier.toLowerCase().includes(value)
                 );
+                currentChipSuggestions = filtered;
                 
                 if (filtered.length === 0) {
                     chipSuggestionsEl.innerHTML = '';
@@ -1701,7 +1738,9 @@
                 }
                 
                 chipSuggestionsEl.innerHTML = filtered.map(chip => 
-                    `<div class="autocomplete-suggestion" data-id="${chip.id}">${chip.identifier}</div>`
+                    `<div class="autocomplete-suggestion ${chip.available ? '' : 'unavailable'}" data-id="${chip.id}">
+                        ${chip.available ? '' : '⚠️ '}${chip.identifier}
+                    </div>`
                 ).join('');
                 chipSuggestionsEl.style.display = 'block';
                 
@@ -1711,8 +1750,20 @@
                         addChipToNewBorrowingSelection(chipId);
                         chipSearchInput.value = '';
                         chipSuggestionsEl.style.display = 'none';
+                        currentChipSuggestions = [];
                     });
                 });
+            });
+            
+            // Handle Enter key - select if only one suggestion
+            chipSearchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && currentChipSuggestions.length === 1 && chipSuggestionsEl.style.display !== 'none') {
+                    e.preventDefault();
+                    addChipToNewBorrowingSelection(currentChipSuggestions[0].id);
+                    chipSearchInput.value = '';
+                    chipSuggestionsEl.style.display = 'none';
+                    currentChipSuggestions = [];
+                }
             });
             
             document.addEventListener('click', (e) => {
@@ -1733,6 +1784,7 @@
                     if (endDateInput.value && new Date(endDateInput.value) < new Date(startDateInput.value)) {
                         endDateInput.value = '';
                     }
+                    refreshChipAvailability();
                 }
             });
             
@@ -1742,6 +1794,7 @@
                         await CustomDialog.alert('Datum konce musí být stejné nebo pozdější než datum začátku.');
                         endDateInput.value = '';
                     }
+                    refreshChipAvailability();
                 }
             });
             
@@ -1804,48 +1857,106 @@
             const chip = chips.find(c => c.id === chipId);
             const container = document.getElementById('selected-chips');
             
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value || startDate;
+            const available = isChipAvailable(chipId, startDate, endDate);
+            
             const tag = document.createElement('div');
-            tag.className = 'chip-tag';
+            tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
             tag.innerHTML = `
-                ${chip.identifier}
+                ${!available ? '⚠️ ' : ''}${chip.identifier}
                 <button type="button" onclick="removeChipFromNewBorrowingSelection(${chipId}, this)">&times;</button>
             `;
             container.appendChild(tag);
+            
+            updateChipAvailabilityWarning();
         }
 
         function removeChipFromNewBorrowingSelection(chipId, button) {
             newBorrowingSelectedChipIds = newBorrowingSelectedChipIds.filter(id => id !== chipId);
             button.closest('.chip-tag').remove();
+            updateChipAvailabilityWarning();
+        }
+
+        function updateChipAvailabilityWarning() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value || startDate;
+            const warning = document.getElementById('chip-availability-warning');
+            
+            if (!warning) return;
+            
+            const hasUnavailable = newBorrowingSelectedChipIds.some(chipId => 
+                !isChipAvailable(chipId, startDate, endDate)
+            );
+            
+            warning.style.display = hasUnavailable ? 'block' : 'none';
+        }
+
+        function refreshChipAvailability() {
+            const container = document.getElementById('selected-chips');
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value || startDate;
+            
+            container.innerHTML = '';
+            newBorrowingSelectedChipIds.forEach(chipId => {
+                const chip = chips.find(c => c.id === chipId);
+                const available = isChipAvailable(chipId, startDate, endDate);
+                
+                const tag = document.createElement('div');
+                tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
+                tag.innerHTML = `
+                    ${!available ? '⚠️ ' : ''}${chip.identifier}
+                    <button type="button" onclick="removeChipFromNewBorrowingSelection(${chipId}, this)">&times;</button>
+                `;
+                container.appendChild(tag);
+            });
+            
+            updateChipAvailabilityWarning();
         }
 
         function removeChipFromSelection(chipId, button) {
             editSelectedChipIds = editSelectedChipIds.filter(id => id !== chipId);
             button.closest('.chip-tag').remove();
+            updateEditChipAvailabilityWarning();
+        }
+
+        function isChipAvailable(chipId, startDate, endDate, excludeBorrowingId = null) {
+            if (!startDate) return true;
+            
+            const start = new Date(startDate);
+            const end = endDate ? new Date(endDate) : new Date(startDate);
+            
+            // Check if chip is borrowed during this period
+            const isBooked = borrowings.some(b => {
+                if (excludeBorrowingId && b.id === excludeBorrowingId) return false;
+                if (!b.chips.includes(chipId)) return false;
+                
+                const bStart = new Date(b.startDate);
+                const bEnd = b.endDate ? new Date(b.endDate) : new Date(b.startDate);
+                
+                // Check overlap
+                return start <= bEnd && end >= bStart;
+            });
+            
+            return !isBooked;
         }
 
         function getAvailableChips(startDate, endDate, excludeChipIds = [], excludeBorrowingId = null) {
             if (!startDate) return chips;
             
-            const start = new Date(startDate);
-            const end = endDate ? new Date(endDate) : new Date(startDate);
-            
             return chips.filter(chip => {
                 if (excludeChipIds.includes(chip.id)) return false;
-                
-                // Check if chip is borrowed during this period
-                const isBooked = borrowings.some(b => {
-                    if (excludeBorrowingId && b.id === excludeBorrowingId) return false;
-                    if (!b.chips.includes(chip.id)) return false;
-                    
-                    const bStart = new Date(b.startDate);
-                    const bEnd = b.endDate ? new Date(b.endDate) : new Date(b.startDate);
-                    
-                    // Check overlap
-                    return start <= bEnd && end >= bStart;
-                });
-                
-                return !isBooked;
+                return isChipAvailable(chip.id, startDate, endDate, excludeBorrowingId);
             });
+        }
+
+        function getChipsWithAvailability(startDate, endDate, excludeChipIds = [], excludeBorrowingId = null) {
+            return chips
+                .filter(chip => !excludeChipIds.includes(chip.id))
+                .map(chip => ({
+                    ...chip,
+                    available: isChipAvailable(chip.id, startDate, endDate, excludeBorrowingId)
+                }));
         }
 
         // Borrowings Management
@@ -2179,15 +2290,19 @@
             borrowing.chips.forEach(chipId => {
                 const chip = chips.find(c => c.id === chipId);
                 if (chip) {
+                    const available = isChipAvailable(chipId, borrowing.startDate, borrowing.endDate || borrowing.startDate, borrowing.id);
                     const tag = document.createElement('div');
-                    tag.className = 'chip-tag';
+                    tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
                     tag.innerHTML = `
-                        ${chip.identifier}
+                        ${!available ? '⚠️ ' : ''}${chip.identifier}
                         <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
                     `;
                     container.appendChild(tag);
                 }
             });
+            
+            // Update availability warning
+            updateEditChipAvailabilityWarning();
             
             // Setup autocomplete for edit modal
             setupEditAutocomplete(borrowing.id);
@@ -2231,10 +2346,9 @@
                     return;
                 }
                 
-                const availableChips = getAvailableChips(startDate, endDate, editSelectedChipIds, borrowingId);
-                const filtered = availableChips.filter(c => 
-                    c.identifier.toLowerCase().includes(value) && 
-                    !editSelectedChipIds.includes(c.id)
+                const allChips = getChipsWithAvailability(startDate, endDate, editSelectedChipIds, borrowingId);
+                const filtered = allChips.filter(c => 
+                    c.identifier.toLowerCase().includes(value)
                 );
                 
                 if (filtered.length === 0) {
@@ -2244,7 +2358,9 @@
                 }
                 
                 chipSuggestionsEl.innerHTML = filtered.map(chip => 
-                    `<div class="autocomplete-suggestion" data-id="${chip.id}">${chip.identifier}</div>`
+                    `<div class="autocomplete-suggestion ${chip.available ? '' : 'unavailable'}" data-id="${chip.id}">
+                        ${chip.available ? '' : '⚠️ '}${chip.identifier}
+                    </div>`
                 ).join('');
                 chipSuggestionsEl.style.display = 'block';
                 
@@ -2266,13 +2382,58 @@
             const chip = chips.find(c => c.id === chipId);
             const container = document.getElementById('edit-selected-chips');
             
+            const startDate = document.getElementById('edit-start-date').value;
+            const endDate = document.getElementById('edit-end-date').value || startDate;
+            const borrowingId = parseInt(document.getElementById('edit-borrowing-id').value);
+            const available = isChipAvailable(chipId, startDate, endDate, borrowingId);
+            
             const tag = document.createElement('div');
-            tag.className = 'chip-tag';
+            tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
             tag.innerHTML = `
-                ${chip.identifier}
+                ${!available ? '⚠️ ' : ''}${chip.identifier}
                 <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
             `;
             container.appendChild(tag);
+            
+            updateEditChipAvailabilityWarning();
+        }
+
+        function updateEditChipAvailabilityWarning() {
+            const startDate = document.getElementById('edit-start-date').value;
+            const endDate = document.getElementById('edit-end-date').value || startDate;
+            const borrowingId = parseInt(document.getElementById('edit-borrowing-id').value);
+            const warning = document.getElementById('edit-chip-availability-warning');
+            
+            if (!warning) return;
+            
+            const hasUnavailable = editSelectedChipIds.some(chipId => 
+                !isChipAvailable(chipId, startDate, endDate, borrowingId)
+            );
+            
+            warning.style.display = hasUnavailable ? 'block' : 'none';
+        }
+
+        function refreshEditChipAvailability() {
+            const container = document.getElementById('edit-selected-chips');
+            const startDate = document.getElementById('edit-start-date').value;
+            const endDate = document.getElementById('edit-end-date').value || startDate;
+            const borrowingId = parseInt(document.getElementById('edit-borrowing-id').value);
+            
+            container.innerHTML = '';
+            editSelectedChipIds.forEach(chipId => {
+                const chip = chips.find(c => c.id === chipId);
+                const available = isChipAvailable(chipId, startDate, endDate, borrowingId);
+                
+                const tag = document.createElement('div');
+                tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
+                tag.innerHTML = `
+                    ${!available ? '⚠️ ' : ''}${chip.identifier}
+                    <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
+                `;
+                container.appendChild(tag);
+            });
+            
+            updateEditChipAvailabilityWarning();
         }
 
         // Date validation for edit form
@@ -2287,6 +2448,9 @@
                 if (editEndDateInput.value && new Date(editEndDateInput.value) < new Date(editStartDateInput.value)) {
                     editEndDateInput.value = '';
                 }
+                if (typeof refreshEditChipAvailability === 'function') {
+                    refreshEditChipAvailability();
+                }
             }
         });
         
@@ -2295,6 +2459,9 @@
                 if (new Date(editEndDateInput.value) < new Date(editStartDateInput.value)) {
                     await CustomDialog.alert('Datum konce musí být stejné nebo pozdější než datum začátku.');
                     editEndDateInput.value = '';
+                }
+                if (typeof refreshEditChipAvailability === 'function') {
+                    refreshEditChipAvailability();
                 }
             }
         });
