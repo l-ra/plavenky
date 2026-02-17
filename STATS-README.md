@@ -112,8 +112,10 @@ Systém sleduje následující typy událostí:
 - `month_borrowings_deleted` - Smazány výpůjčky za měsíc (obsahuje: count)
 
 ### Správa dat
-- `all_data_imported` - Import všech dat (obsahuje: chips, employees, borrowings - počty)
-- `all_data_exported` - Export všech dat (obsahuje: chips, employees, borrowings - počty)
+- `all_data_imported` - Import všech dat z JSON (obsahuje: chips, employees, borrowings - počty)
+- `all_data_exported` - Export všech dat do JSON (obsahuje: chips, employees, borrowings - počty)
+- `all_data_imported_excel` - Import všech dat z Excel (obsahuje: chips, employees, borrowings - počty)
+- `all_data_exported_excel` - Export všech dat do Excel (obsahuje: chips, employees, borrowings - počty)
 
 ### Ostatní
 - `help_viewed` - Zobrazena nápověda

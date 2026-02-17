@@ -816,20 +816,27 @@
                 <div style="background: var(--bg-gray); padding: 25px; border-radius: 8px;">
                     <h3 style="margin-bottom: 15px;">📥 Export dat</h3>
                     <p style="margin-bottom: 20px; color: var(--text-gray);">
-                        Exportujte všechna data do souboru JSON. Tento soubor obsahuje čipy, zaměstnance a výpůjčky.
+                        Exportujte všechna data (čipy, zaměstnanci, výpůjčky) do Excel souboru se záložkami.
                     </p>
-                    <button class="btn btn-success" id="export-all-data" style="width: 100%;">
-                        Exportovat všechna data
+                    <button class="btn btn-success" id="export-all-data-excel" style="width: 100%; margin-bottom: 10px;">
+                        📊 Exportovat do Excel
+                    </button>
+                    <button class="btn btn-success" id="export-all-data" style="width: 100%; background: #6c757d; border-color: #6c757d;">
+                        💾 Exportovat do JSON
                     </button>
                 </div>
 
                 <div style="background: var(--bg-gray); padding: 25px; border-radius: 8px;">
                     <h3 style="margin-bottom: 15px;">📤 Import dat</h3>
                     <p style="margin-bottom: 20px; color: var(--text-gray);">
-                        Importujte data ze záložního souboru JSON. <strong>Pozor:</strong> Tato akce přepíše všechna současná data!
+                        Importujte data ze zálohy. <strong>Pozor:</strong> Tato akce přepíše všechna současná data!
                     </p>
-                    <button class="btn btn-primary" id="import-all-data-btn" style="width: 100%;">
-                        Importovat data
+                    <button class="btn btn-primary" id="import-all-data-excel-btn" style="width: 100%; margin-bottom: 10px;">
+                        📊 Importovat z Excel
+                    </button>
+                    <input type="file" id="import-all-data-excel" accept=".xlsx" style="display: none;">
+                    <button class="btn btn-primary" id="import-all-data-btn" style="width: 100%; background: #6c757d; border-color: #6c757d;">
+                        💾 Importovat z JSON
                     </button>
                     <input type="file" id="import-all-data" accept=".json" style="display: none;">
                 </div>
@@ -1146,7 +1153,7 @@
         };
 
         // Application version
-        const APP_VERSION = '1.0.0';
+        const APP_VERSION = '1.1.0';
         const GITHUB_REPO = 'https://github.com/l-ra/evidence-plavenek';
 
         // Analytics & Statistics
@@ -2759,10 +2766,19 @@
 
         // Data Management
         function initializeDataManagement() {
-            // Export all data
+            // Export all data - Excel
+            document.getElementById('export-all-data-excel').addEventListener('click', exportAllDataExcel);
+            
+            // Export all data - JSON
             document.getElementById('export-all-data').addEventListener('click', exportAllData);
             
-            // Import all data
+            // Import all data - Excel
+            document.getElementById('import-all-data-excel-btn').addEventListener('click', () => {
+                document.getElementById('import-all-data-excel').click();
+            });
+            document.getElementById('import-all-data-excel').addEventListener('change', handleImportAllDataExcel);
+            
+            // Import all data - JSON
             document.getElementById('import-all-data-btn').addEventListener('click', () => {
                 document.getElementById('import-all-data').click();
             });
@@ -2967,6 +2983,150 @@
                 }
             };
             reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        async function exportAllDataExcel() {
+            // Create workbook with three sheets
+            const workbook = XLSX.utils.book_new();
+            
+            // Sheet 1: Zaměstnanci
+            const employeesData = employees.map(e => ({
+                'ID': e.id,
+                'Jméno': e.name,
+                'Osobní číslo': e.employeeNumber,
+                'Odbor': e.department || ''
+            }));
+            const employeesSheet = XLSX.utils.json_to_sheet(employeesData);
+            XLSX.utils.book_append_sheet(workbook, employeesSheet, 'Zaměstnanci');
+            
+            // Sheet 2: Čipy
+            const chipsData = chips.map(c => ({
+                'ID': c.id,
+                'Identifikátor': c.identifier
+            }));
+            const chipsSheet = XLSX.utils.json_to_sheet(chipsData);
+            XLSX.utils.book_append_sheet(workbook, chipsSheet, 'Čipy');
+            
+            // Sheet 3: Výpůjčky
+            const borrowingsData = borrowings.map(b => {
+                const employee = employees.find(e => e.id === b.employeeId);
+                const chipIdentifiers = b.chips.map(chipId => {
+                    const chip = chips.find(c => c.id === chipId);
+                    return chip ? chip.identifier : 'N/A';
+                }).join(', ');
+                
+                return {
+                    'ID': b.id,
+                    'ID zaměstnance': b.employeeId,
+                    'Zaměstnanec': employee ? employee.name : 'N/A',
+                    'Osobní číslo': employee ? employee.employeeNumber : 'N/A',
+                    'Odbor': employee && employee.department ? employee.department : '',
+                    'Čipy (IDs)': b.chips.join(', '),
+                    'Čipy (identifikátory)': chipIdentifiers,
+                    'Začátek výpůjčky': b.startDate,
+                    'Konec výpůjčky': b.endDate || ''
+                };
+            });
+            const borrowingsSheet = XLSX.utils.json_to_sheet(borrowingsData);
+            XLSX.utils.book_append_sheet(workbook, borrowingsSheet, 'Výpůjčky');
+            
+            // Create filename with timestamp
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const filename = `evidence-plavenek-${yyyy}-${mm}-${dd}-${hh}${min}.xlsx`;
+            
+            // Export
+            XLSX.writeFile(workbook, filename);
+            
+            Analytics.track('all_data_exported_excel', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
+        }
+
+        async function handleImportAllDataExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!await CustomDialog.confirm('VAROVÁNÍ: Import dat přepíše všechna současná data v aplikaci. Opravdu chcete pokračovat?')) {
+                e.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Validate sheets exist
+                    if (!workbook.SheetNames.includes('Zaměstnanci') || 
+                        !workbook.SheetNames.includes('Čipy') || 
+                        !workbook.SheetNames.includes('Výpůjčky')) {
+                        await CustomDialog.alert('Chyba: Soubor neobsahuje všechny požadované záložky (Zaměstnanci, Čipy, Výpůjčky).', 'Chyba');
+                        return;
+                    }
+                    
+                    // Import Zaměstnanci
+                    const employeesSheet = workbook.Sheets['Zaměstnanci'];
+                    const employeesRows = XLSX.utils.sheet_to_json(employeesSheet);
+                    const importedEmployees = employeesRows.map(row => ({
+                        id: parseInt(row['ID']),
+                        name: String(row['Jméno'] || ''),
+                        employeeNumber: String(row['Osobní číslo'] || ''),
+                        department: String(row['Odbor'] || '')
+                    }));
+                    
+                    // Import Čipy
+                    const chipsSheet = workbook.Sheets['Čipy'];
+                    const chipsRows = XLSX.utils.sheet_to_json(chipsSheet);
+                    const importedChips = chipsRows.map(row => ({
+                        id: parseInt(row['ID']),
+                        identifier: String(row['Identifikátor'] || '')
+                    }));
+                    
+                    // Import Výpůjčky
+                    const borrowingsSheet = workbook.Sheets['Výpůjčky'];
+                    const borrowingsRows = XLSX.utils.sheet_to_json(borrowingsSheet);
+                    const importedBorrowings = borrowingsRows.map(row => {
+                        // Parse chip IDs from comma-separated string
+                        const chipIds = String(row['Čipy (IDs)'] || '').split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+                        
+                        return {
+                            id: parseInt(row['ID']),
+                            employeeId: parseInt(row['ID zaměstnance']),
+                            chips: chipIds,
+                            startDate: String(row['Začátek výpůjčky'] || ''),
+                            endDate: row['Konec výpůjčky'] ? String(row['Konec výpůjčky']) : null
+                        };
+                    });
+                    
+                    // Set imported data
+                    chips = importedChips;
+                    employees = importedEmployees;
+                    borrowings = importedBorrowings;
+                    
+                    // Save to localStorage
+                    Storage.set('chips', chips);
+                    Storage.set('employees', employees);
+                    Storage.set('borrowings', borrowings);
+                    
+                    // Refresh all displays
+                    renderChips();
+                    renderEmployees();
+                    renderBorrowings();
+                    updateDataStats();
+                    updateMonthsOverview();
+                    
+                    Analytics.track('all_data_imported_excel', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
+                    await CustomDialog.alert(`Data byla úspěšně importována z Excel!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
+                } catch (error) {
+                    await CustomDialog.alert('Chyba při importu dat z Excel: ' + error.message, 'Chyba');
+                }
+            };
+            reader.readAsArrayBuffer(file);
             e.target.value = '';
         }
 

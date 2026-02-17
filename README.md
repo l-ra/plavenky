@@ -30,9 +30,14 @@ Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlíž
 
 ### 3. Nová výpůjčka
 - **Výběr zaměstnance**: Našeptávač při psaní jména nebo čísla zaměstnance
+  - Stisknutím Enter vyberte položku, pokud je v seznamu pouze jedna
 - **Datum začátku**: Předvyplněno na aktuální datum
 - **Výběr čipů**: Přidávání čipů pomocí našeptávače
-  - Zobrazují se pouze čipy dostupné v daném termínu
+  - Zobrazují se všechny čipy s indikací dostupnosti
+  - Nedostupné čipy jsou označeny ⚠️ a žlutým pozadím
+  - Varování při výběru již zapůjčeného čipu
+  - Možnost přesto přidat čip i když je zapůjčený
+  - Stisknutím Enter vyberte čip, pokud je v seznamu pouze jeden
   - Možnost přidat více čipů najednou
 - **Datum konce** (volitelné): Pokud není zadáno, výpůjčka zůstává aktivní
 
@@ -40,9 +45,12 @@ Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlíž
 - Přehled všech výpůjček s informacemi:
   - Zaměstnanec (jméno a číslo)
   - Odbor zaměstnance
-  - Seznam vypůjčených čipů
-  - Datum začátku a konce
+  - Seznam vypůjčených čipů jako tagy
+  - Datum začátku a konce se zkratkou dne v týdnu (Po, Út, St, ...)
   - Stav (Aktivní/Ukončeno)
+- **Detekce kolizí**: Čipy, které jsou současně ve více výpůjčkách s časovým překryvem
+  - Označeny červeným tagem s ⚠️
+  - Interaktivní zvýraznění: při najetí myší na kolizní čip se zvýrazní všechny jeho výskyty v kolizních výpůjčkách
 - **Filtry**: Filtrování podle zaměstnance, odboru, čipu nebo stavu
 - **Import z XLSX**: Import seznamu výpůjček ze souboru Excel
   - Sloupce: "Zaměstnanecké číslo", "Jméno zaměstnance", "Odbor", "Čipy", "Datum začátku", "Datum konce"
@@ -61,9 +69,16 @@ Stačí otevřít soubor `index.html` v libovolném moderním webovém prohlíž
   - Odbor
 
 ### 6. Správa dat
-- **Export všech dat**: Exportuje všechna data (čipy, zaměstnance, výpůjčky) do jednoho JSON souboru
-  - Soubor obsahuje časovou značku v názvu: `evidence-plavenek-YYYY-MM-DD-HHMM.json`
-- **Import dat**: Importuje data ze záložního JSON souboru
+- **Export všech dat**:
+  - **Excel formát** (primární): Exportuje data do XLSX souboru se třemi záložkami:
+    - *Zaměstnanci*: ID, Jméno, Osobní číslo, Odbor
+    - *Čipy*: ID, Identifikátor
+    - *Výpůjčky*: Kompletní informace včetně ID čipů a identifikátorů
+  - **JSON formát**: Export do jednoho JSON souboru pro pokročilé použití
+  - Soubory obsahují časovou značku v názvu: `evidence-plavenek-YYYY-MM-DD-HHMM.xlsx/.json`
+- **Import dat**:
+  - **Excel formát** (primární): Importuje data z XLSX souboru s očekávanými záložkami
+  - **JSON formát**: Import ze záložního JSON souboru
   - Přepíše všechna současná data
   - Vyžaduje potvrzení
 - **Smazání všech dat**: Kompletní vymazání všech dat z aplikace

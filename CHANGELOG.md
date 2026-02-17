@@ -5,6 +5,23 @@ Všechny významné změny v projektu Evidence plaveckých čipů budou dokument
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/)
 a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [1.1.0] - 2026-02-17
+
+### Přidáno
+- Export všech dat do Excel formátu se záložkami (Zaměstnanci, Čipy, Výpůjčky)
+- Import všech dat z Excel formátu
+- Detekce kolizních čipů ve výpůjčkách s vizuálním označením
+- Interaktivní zvýraznění kolizních čipů při najetí myší
+- Zkratky dnů v týdnu u datumů v seznamu výpůjček (Po, Út, St, ...)
+- Možnost výběru položky z autocomplete pomocí Enter při jedné nabídce
+- Varování při výběru již zapůjčeného čipu s možností jej přesto přidat
+
+### Změněno
+- Excel export/import je nyní primární volbou v Správě dat
+- JSON export/import je sekundární volbou
+- Čipy v seznamu výpůjček jsou zobrazeny jako tagy místo textu oddělovaného čárkami
+- Vylepšené formátování tabulky výpůjček při zalomení obsahu
+
 ## [1.0.0] - 2026-02-08
 
 ### Přidáno
