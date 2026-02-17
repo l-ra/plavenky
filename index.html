@@ -189,6 +189,11 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        td.date-cell {
+            white-space: nowrap;
         }
 
         th {
@@ -2177,8 +2182,8 @@
                                     <td>${employee ? `${employee.name} (${employee.employeeNumber})` : 'N/A'}</td>
                                     <td>${employee && employee.department ? employee.department : '-'}</td>
                                     <td class="chips-cell">${chipTags}</td>
-                                    <td>${formatDate(b.startDate)}</td>
-                                    <td>${b.endDate ? formatDate(b.endDate) : '-'}</td>
+                                    <td class="date-cell">${formatDate(b.startDate)}</td>
+                                    <td class="date-cell">${b.endDate ? formatDate(b.endDate) : '-'}</td>
                                     <td>
                                         <span class="status-badge ${isActive ? 'status-active' : 'status-returned'}">
                                             ${isActive ? 'Aktivní' : 'Ukončeno'}
@@ -2203,7 +2208,10 @@
 
         function formatDate(dateStr) {
             const date = new Date(dateStr);
-            return date.toLocaleDateString('cs-CZ');
+            const dayNames = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+            const dayOfWeek = dayNames[date.getDay()];
+            const formattedDate = date.toLocaleDateString('cs-CZ');
+            return `${formattedDate} (${dayOfWeek})`;
         }
 
         function highlightConflictingChips(chipId, currentBorrowingId, conflictBorrowingsStr) {
