@@ -15,6 +15,7 @@ a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 - Zkratky dnů v týdnu u datumů v seznamu výpůjček (Po, Út, St, ...)
 - Možnost výběru položky z autocomplete pomocí Enter při jedné nabídce
 - Varování při výběru již zapůjčeného čipu s možností jej přesto přidat
+- Zobrazení identifikátoru instance v patičce aplikace (zkrácená forma s plnou verzí v tooltip)
 
 ### Změněno
 - Excel export/import je nyní primární volbou v Správě dat
