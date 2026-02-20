@@ -59,12 +59,13 @@ putenv('STATS_DIR=/custom/path/to/stats');
 
 ## Struktura souborů
 
-Statistiky jsou ukládány v JSON Lines formátu, jeden soubor na měsíc:
+Statistiky jsou ukládány v JSON Lines formátu, jeden soubor na měsíc. Pojmenování instancí (volitelné) v samostatném souboru:
 ```
 /working/plavenky-stats/
 ├── stats-2026-01.jsonl
 ├── stats-2026-02.jsonl
-└── stats-2026-03.jsonl
+├── stats-2026-03.jsonl
+└── instance-names.json    # mapování instanceId → pojmenování (vytvoří view-stats.php)
 ```
 
 ## Oprávnění

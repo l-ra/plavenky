@@ -2,8 +2,8 @@
 
 Jednoduchá webová aplikace pro evidenci výpůjček plaveckých čipů. Aplikace běží kompletně v prohlížeči, ukládá data lokálně a funguje i bez webserveru.
 
-[![GitHub](https://img.shields.io/badge/GitHub-l--ra%2Fevidence--plavenek-blue?logo=github)](https://github.com/l-ra/evidence-plavenek)
-[![Version](https://img.shields.io/badge/version-1.0.0-green)](#)
+[![GitHub](https://img.shields.io/badge/GitHub-l--ra%2Fplavenky-blue?logo=github)](https://github.com/l-ra/plavenky)
+[![Version](https://img.shields.io/badge/version-1.2.0-green)](#)
 
 ## Spuštění
 
@@ -188,7 +188,7 @@ const APP_VERSION = '1.0.0';
 URL GitHub repozitáře se nastavuje v konstantě `GITHUB_REPO` v souboru `index.html`:
 
 ```javascript
-const GITHUB_REPO = 'https://github.com/l-ra/evidence-plavenek';
+const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
 ```
 
 Odkaz na repozitář je zobrazen v patičce aplikace.

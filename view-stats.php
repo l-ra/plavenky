@@ -11,6 +11,47 @@ if ($statsDir === false || $statsDir === '') {
 }
 $statsDir = rtrim($statsDir, '/');
 
+$instanceNamesFile = $statsDir . '/instance-names.json';
+
+// Load instance names from separate file
+function loadInstanceNames($file) {
+    if (!file_exists($file)) {
+        return [];
+    }
+    $json = file_get_contents($file);
+    $data = json_decode($json, true);
+    return is_array($data) ? $data : [];
+}
+
+// Save instance names to separate file
+function saveInstanceNames($file, $names) {
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        return false;
+    }
+    $json = json_encode($names, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    return file_put_contents($file, $json) !== false;
+}
+
+// Handle POST: save instance name
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['instance_id']) && isset($_POST['instance_name'])) {
+    $postInstanceId = trim($_POST['instance_id']);
+    $postInstanceName = trim($_POST['instance_name']);
+    if ($postInstanceId !== '') {
+        $names = loadInstanceNames($instanceNamesFile);
+        if ($postInstanceName === '') {
+            unset($names[$postInstanceId]);
+        } else {
+            $names[$postInstanceId] = $postInstanceName;
+        }
+        saveInstanceNames($instanceNamesFile, $names);
+        $redirect = '?';
+        if ($postInstanceId) $redirect .= 'instance=' . urlencode($postInstanceId);
+        header('Location: ' . $redirect);
+        exit;
+    }
+}
+
 // Get all stats files
 function getStatsFiles($dir) {
     if (!is_dir($dir)) {
@@ -118,8 +159,18 @@ $selectedMonth = isset($_GET['month']) ? $_GET['month'] : null;
 $files = getStatsFiles($statsDir);
 $allEvents = loadAllEvents($files);
 $instances = getInstances($allEvents);
+$instanceNames = loadInstanceNames($instanceNamesFile);
 $eventStats = getEventStats($allEvents);
 $monthlyStats = getMonthlyStats($allEvents);
+
+// Helper to get display label for instance
+function getInstanceLabel($instanceId, $instanceNames, $shortId = true) {
+    $name = isset($instanceNames[$instanceId]) ? trim($instanceNames[$instanceId]) : '';
+    if ($name !== '') {
+        return $name;
+    }
+    return $shortId ? substr($instanceId, 0, 8) . '...' : $instanceId;
+}
 
 // Filter events if instance is selected
 $filteredEvents = $allEvents;
@@ -400,7 +451,7 @@ if ($selectedMonth) {
                     <option value="">Všechny instance (<?php echo count($instances); ?>)</option>
                     <?php foreach ($instances as $inst): ?>
                         <option value="<?php echo htmlspecialchars($inst['id']); ?>" <?php echo $selectedInstance === $inst['id'] ? 'selected' : ''; ?>>
-                            <?php echo substr($inst['id'], 0, 8); ?>... (<?php echo $inst['eventCount']; ?> událostí)
+                            <?php echo htmlspecialchars(getInstanceLabel($inst['id'], $instanceNames)); ?> (<?php echo $inst['eventCount']; ?> událostí)
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -490,7 +541,7 @@ if ($selectedMonth) {
                 <table>
                     <thead>
                         <tr>
-                            <th>ID instance</th>
+                            <th>Instance / Pojmenování</th>
                             <th>První použití</th>
                             <th>Poslední aktivita</th>
                             <th>Události</th>
@@ -498,9 +549,17 @@ if ($selectedMonth) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($instances as $inst): ?>
+                        <?php foreach ($instances as $inst): 
+                            $displayName = getInstanceLabel($inst['id'], $instanceNames);
+                            $hasName = isset($instanceNames[$inst['id']]) && $instanceNames[$inst['id']] !== '';
+                        ?>
                             <tr>
-                                <td><span class="instance-id"><?php echo htmlspecialchars($inst['id']); ?></span></td>
+                                <td>
+                                    <?php if ($hasName): ?>
+                                        <strong><?php echo htmlspecialchars($displayName); ?></strong><br>
+                                    <?php endif; ?>
+                                    <span class="instance-id"><?php echo htmlspecialchars($inst['id']); ?></span>
+                                </td>
                                 <td><?php echo date('d.m.Y H:i', strtotime($inst['firstSeen'])); ?></td>
                                 <td><?php echo date('d.m.Y H:i', strtotime($inst['lastSeen'])); ?></td>
                                 <td><?php echo $inst['eventCount']; ?></td>
@@ -511,8 +570,27 @@ if ($selectedMonth) {
                 </table>
             <?php else: ?>
                 <!-- Instance Detail -->
-                <?php $inst = $instances[$selectedInstance]; ?>
-                <h2>Detail instance</h2>
+                <?php $inst = $instances[$selectedInstance]; 
+                      $instCurrentName = isset($instanceNames[$selectedInstance]) ? $instanceNames[$selectedInstance] : '';
+                ?>
+                <h2>Detail instance<?php if ($instCurrentName): ?> — <?php echo htmlspecialchars($instCurrentName); ?><?php endif; ?></h2>
+                
+                <!-- Form to set/edit instance name -->
+                <div class="filter-bar" style="margin-bottom: 20px;">
+                    <form method="post" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label for="instance_name">Pojmenování instance:</label>
+                        <input type="hidden" name="instance_id" value="<?php echo htmlspecialchars($selectedInstance); ?>">
+                        <input type="text" id="instance_name" name="instance_name" value="<?php echo htmlspecialchars($instCurrentName); ?>" 
+                               placeholder="např. Telefon Honzy, Tablet doma..." 
+                               style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; min-width: 200px;">
+                        <button type="submit" class="btn">Uložit</button>
+                        <?php if ($instCurrentName): ?>
+                        <button type="submit" name="clear_name" value="1" class="btn btn-secondary" 
+                                onclick="document.getElementById('instance_name').value=''; return true;">Zrušit pojmenování</button>
+                        <?php endif; ?>
+                    </form>
+                </div>
+                
                 <div class="stats-grid">
                     <div class="stat-card">
                         <h3>ID instance</h3>

@@ -5,6 +5,17 @@ Všechny významné změny v projektu Evidence plaveckých čipů budou dokument
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/)
 a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [1.2.0] - 2026-02-20
+
+### Přidáno
+- Pojmenování instancí ve statistikách - možnost doplnit vlastní název ke konkrétní instanceId (ukládá se do `instance-names.json`)
+- Tlačítko „Smazat datum“ ve formuláři pro úpravu výpůjčky - umožňuje odstranit datum ukončení (výpůjčka zůstane aktivní)
+
+### Změněno
+- Hlavičky v exportu výpůjček za měsíc: „Jméno“ → „Příjmení a jméno“, „Odbor“ → „Odbor (zkratka)“
+- Export výpůjček za měsíc má nyní formátování: tučné záhlaví, nadpis větším fontem, ohraničení buněk
+- Knihovna SheetJS nahrazena xlsx-js-style pro podporu formátování v Excel exportu
+
 ## [1.1.0] - 2026-02-17
 
 ### Přidáno
@@ -57,4 +68,6 @@ a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 - JSON Lines formát pro ukládání statistik (jeden soubor na měsíc)
 - Konfigurovatelná složka pro statistiky přes proměnnou prostředí
 
-[1.0.0]: https://github.com/l-ra/evidence-plavenek/releases/tag/v1.0.0
+[1.2.0]: https://github.com/l-ra/plavenky/releases/tag/v1.2.0
+[1.1.0]: https://github.com/l-ra/plavenky/releases/tag/v1.1.0
+[1.0.0]: https://github.com/l-ra/plavenky/releases/tag/v1.0.0

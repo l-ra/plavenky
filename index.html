@@ -934,7 +934,14 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-end-date">Datum konce</label>
-                        <input type="date" id="edit-end-date">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="date" id="edit-end-date" style="flex: 1;">
+                            <button type="button" class="btn btn-secondary btn-small" 
+                                    onclick="document.getElementById('edit-end-date').value=''; updateEditChipAvailabilityWarning();"
+                                    title="Smazat datum ukončení (výpůjčka zůstane aktivní)">
+                                Smazat datum
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1008,8 +1015,8 @@
         </div>
     </div>
 
-    <!-- Load SheetJS library for XLSX support -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Load xlsx-js-style for XLSX with styling support (SheetJS fork) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     
     <!-- Load marked.js library for Markdown support -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1155,8 +1162,8 @@
         };
 
         // Application version
-        const APP_VERSION = '1.1.0';
-        const GITHUB_REPO = 'https://github.com/l-ra/evidence-plavenek';
+        const APP_VERSION = '1.2.0';
+        const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
 
         // Analytics & Statistics
         const Analytics = {
@@ -2737,7 +2744,7 @@
             wsData.push([`Zapůjčení čipů na plavání - ${year}/${month}`]);
             
             // Second row: column headers
-            wsData.push(['Číslo čipu', 'Osobní číslo', 'Jméno', 'Odbor', 'Datum výpůjčky']);
+            wsData.push(['Číslo čipu', 'Osobní číslo', 'Příjmení a jméno', 'Odbor (zkratka)', 'Datum výpůjčky']);
             
             // Data rows
             exportData.forEach(row => {
@@ -2760,12 +2767,43 @@
                 e: { r: 0, c: 4 }  // end: row 0, column 4 (5 columns total)
             });
             
-            // Style the title cell (bold and centered)
-            if (!ws['A1'].s) ws['A1'].s = {};
-            ws['A1'].s = {
-                font: { bold: true, sz: 14 },
-                alignment: { horizontal: 'center', vertical: 'center' }
+            // Border style for all cells
+            const thinBorder = {
+                top: { style: 'thin', color: { rgb: '000000' } },
+                bottom: { style: 'thin', color: { rgb: '000000' } },
+                left: { style: 'thin', color: { rgb: '000000' } },
+                right: { style: 'thin', color: { rgb: '000000' } }
             };
+            
+            // Style title cell (row 0): larger font, bold, centered
+            ws['A1'].s = {
+                font: { bold: true, sz: 16 },
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: thinBorder
+            };
+            
+            // Style header row (row 1): bold
+            const headerCols = ['A', 'B', 'C', 'D', 'E'];
+            headerCols.forEach(col => {
+                const ref = col + '2';
+                if (ws[ref]) {
+                    ws[ref].s = {
+                        font: { bold: true },
+                        border: thinBorder
+                    };
+                }
+            });
+            
+            // Style data rows: borders
+            const totalRows = wsData.length;
+            for (let r = 2; r < totalRows; r++) {
+                headerCols.forEach((col, c) => {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (ws[cellRef]) {
+                        ws[cellRef].s = { border: thinBorder };
+                    }
+                });
+            }
             
             // Set column widths
             ws['!cols'] = [
