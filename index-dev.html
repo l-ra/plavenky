@@ -125,8 +125,7 @@
             z-index: 30;
         }
 
-        .tab-group.open .tab-submenu,
-        .tab-group:focus-within .tab-submenu {
+        .tab-group.open .tab-submenu {
             display: flex;
         }
 
@@ -551,9 +550,6 @@
                 max-height: none !important;
             }
 
-            .tab-group:hover .tab-submenu {
-                display: flex;
-            }
         }
 
         @media (max-width: 768px) {
@@ -1532,6 +1528,10 @@
                 if (!manageMenuGroup || !manageMenuToggle) return;
                 manageMenuGroup.classList.remove('open');
                 manageMenuToggle.setAttribute('aria-expanded', 'false');
+                const activeElement = document.activeElement;
+                if (activeElement instanceof HTMLElement && manageMenuGroup.contains(activeElement)) {
+                    activeElement.blur();
+                }
             };
 
             const updateManageMenuActiveState = (tabId) => {
