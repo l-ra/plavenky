@@ -2194,8 +2194,34 @@
 
             await CustomDialog.alert(message, 'Nejprve doplňte data');
         }
+
+        async function showMissingEmployeesInfoIfMissing() {
+            if (employees.length > 0) return;
+
+            let message = 'Pro výběr zaměstnance je potřeba nejprve doplnit základní data.\n\n';
+            message += 'Chybí zaměstnanci.\n';
+            message += 'V menu Správa přejděte na Správa zaměstnanců a přidejte alespoň jednoho zaměstnance.';
+
+            await CustomDialog.alert(message, 'Nejprve doplňte data');
+        }
+
+        async function showMissingChipsInfoIfMissing() {
+            if (chips.length > 0) return;
+
+            let message = 'Pro výběr čipu je potřeba nejprve doplnit základní data.\n\n';
+            message += 'Chybí čipy.\n';
+            message += 'V menu Správa přejděte na Správa čipů a přidejte alespoň jeden čip.';
+
+            await CustomDialog.alert(message, 'Nejprve doplňte data');
+        }
         
         function initializeNewBorrowingForm() {
+            const employeeSearchInput = document.getElementById('employee-search');
+
+            employeeSearchInput.addEventListener('click', async () => {
+                await showMissingEmployeesInfoIfMissing();
+            });
+
             // Employee autocomplete
             setupAutocomplete(
                 'employee-search',
@@ -2216,6 +2242,10 @@
             const chipSuggestionsEl = document.getElementById('chip-suggestions');
             const selectedChipsContainer = document.getElementById('selected-chips');
             let currentChipSuggestions = [];
+
+            chipSearchInput.addEventListener('click', async () => {
+                await showMissingChipsInfoIfMissing();
+            });
             
             chipSearchInput.addEventListener('input', () => {
                 const value = chipSearchInput.value.toLowerCase().trim();
