@@ -95,6 +95,133 @@
             border-color: var(--primary-color);
         }
 
+        .tab-group {
+            position: relative;
+        }
+
+        .tab-group-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-group-caret {
+            font-size: 12px;
+        }
+
+        .tab-submenu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 240px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 30;
+        }
+
+        .tab-group.open .tab-submenu {
+            display: flex;
+        }
+
+        .tab-submenu .tab-btn {
+            width: 100%;
+            text-align: left;
+        }
+
+        .menu-action-btn.is-backup {
+            background: var(--success-color);
+            border-color: #15803d;
+            color: white;
+        }
+
+        .menu-action-btn.is-backup:hover {
+            background: #15803d;
+            border-color: #166534;
+        }
+
+        .menu-action-btn.is-restore {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .menu-action-btn.is-restore:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .menu-action-btn.needs-backup {
+            animation: backupPulse 1.4s ease-in-out infinite;
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
+        }
+
+        .menu-action-btn.needs-backup-strong {
+            animation: backupPulseStrong 1s ease-in-out infinite;
+            transform-origin: center;
+            border-width: 3px;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+        }
+
+        @keyframes backupPulse {
+            0% {
+                transform: translateY(0);
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
+            }
+            70% {
+                transform: translateY(-1px);
+                box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+            }
+            100% {
+                transform: translateY(0);
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+
+        @keyframes backupPulseStrong {
+            0% {
+                transform: translateY(0) scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+            }
+            60% {
+                transform: translateY(-2px) scale(1.05);
+                box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .dev-badge {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #f59e0b;
+            color: #111827;
+            font-size: 13px;
+            font-weight: 700;
+            vertical-align: middle;
+        }
+
+        .dev-notice {
+            margin-top: 12px;
+            text-align: center;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #92400e;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
         .tab-content {
             display: none;
             background: white;
@@ -379,6 +506,52 @@
             margin-bottom: 20px;
         }
 
+        .borrowings-filter-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .advanced-filter {
+            margin-top: 18px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .advanced-filter summary {
+            cursor: pointer;
+            list-style: none;
+            padding: 12px 14px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .advanced-filter summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .advanced-filter summary::after {
+            content: '▾';
+            font-size: 12px;
+            color: var(--text-gray);
+            transition: transform 0.2s ease;
+        }
+
+        .advanced-filter:not([open]) summary::after {
+            transform: rotate(-90deg);
+        }
+
+        .advanced-filter-content {
+            border-top: 1px solid var(--border-color);
+            padding: 14px;
+        }
+
         .status-badge {
             padding: 4px 10px;
             border-radius: 12px;
@@ -444,10 +617,15 @@
                 display: flex !important;
                 max-height: none !important;
             }
+
         }
 
         @media (max-width: 768px) {
             .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .borrowings-filter-top {
                 grid-template-columns: 1fr;
             }
             
@@ -472,6 +650,22 @@
             
             .tab-btn {
                 width: 100%;
+            }
+
+            .tab-group {
+                width: 100%;
+            }
+
+            .tab-group-toggle {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .tab-submenu {
+                position: static;
+                min-width: 100%;
+                box-shadow: none;
+                margin-top: 5px;
             }
             
             #tab-data-management > div[style*="grid-template-columns: 1fr 1fr"] {
@@ -639,10 +833,18 @@
         <div class="tabs" id="tabs">
             <button class="tab-btn active" data-tab="borrowings">Výpůjčky</button>
             <button class="tab-btn" data-tab="new-borrowing">Nová výpůjčka</button>
-            <button class="tab-btn" data-tab="chips">Správa čipů</button>
-            <button class="tab-btn" data-tab="employees">Správa zaměstnanců</button>
             <button class="tab-btn" data-tab="export">Export</button>
-            <button class="tab-btn" data-tab="data-management">Správa dat</button>
+            <div class="tab-group" id="manage-menu-group">
+                <button type="button" class="tab-btn tab-group-toggle" id="manage-menu-toggle" aria-expanded="false">
+                    Správa <span class="tab-group-caret">▾</span>
+                </button>
+                <div class="tab-submenu" id="manage-submenu">
+                    <button class="tab-btn" data-tab="chips">Správa čipů</button>
+                    <button class="tab-btn" data-tab="employees">Správa zaměstnanců</button>
+                    <button class="tab-btn" data-tab="data-management">Správa dat</button>
+                </div>
+            </div>
+            <button type="button" class="tab-btn menu-action-btn" id="menu-backup-action">Zálohovat</button>
             <button class="tab-btn" data-tab="help">Nápověda</button>
         </div>
 
@@ -659,34 +861,50 @@
             
             <!-- Filtry -->
             <div class="filter-section">
-                <h3 style="margin-bottom: 15px;">Filtry</h3>
-                <div class="form-row">
+                <h3 style="margin-bottom: 15px;">Vyhledávání výpůjček</h3>
+                <div class="borrowings-filter-top">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="filter-employee">Zaměstnanec</label>
-                        <input type="text" id="filter-employee" placeholder="Jméno nebo číslo zaměstnance">
+                        <label for="filter-search">Rychlé vyhledávání</label>
+                        <input type="text" id="filter-search" placeholder="Hledat ve jménu, odboru nebo identifikátoru čipu">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="filter-department">Odbor</label>
-                        <input type="text" id="filter-department" placeholder="Název odboru">
-                    </div>
-                </div>
-                <div class="form-row" style="margin-top: 20px;">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="filter-chip">Čip</label>
-                        <input type="text" id="filter-chip" placeholder="Identifikátor čipu">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="filter-status">Stav</label>
-                        <select id="filter-status">
-                            <option value="all">Všechny</option>
-                            <option value="active">Aktivní</option>
-                            <option value="ended">Ukončené</option>
-                        </select>
+                        <label for="filter-month">Měsíc</label>
+                        <select id="filter-month"></select>
                     </div>
                 </div>
-                <div style="margin-top: 20px;">
-                    <button class="btn btn-secondary" id="clear-filters" style="width: 100%;">Vymazat filtry</button>
-                </div>
+
+                <details class="advanced-filter">
+                    <summary>Pokročilý filtr</summary>
+                    <div class="advanced-filter-content">
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filter-employee">Zaměstnanec</label>
+                                <input type="text" id="filter-employee" placeholder="Jméno nebo číslo zaměstnance">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filter-department">Odbor</label>
+                                <input type="text" id="filter-department" placeholder="Název odboru">
+                            </div>
+                        </div>
+                        <div class="form-row" style="margin-top: 20px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filter-chip">Čip</label>
+                                <input type="text" id="filter-chip" placeholder="Identifikátor čipu">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filter-status">Stav</label>
+                                <select id="filter-status">
+                                    <option value="all">Všechny</option>
+                                    <option value="active">Aktivní</option>
+                                    <option value="ended">Ukončené</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-secondary" id="clear-filters" style="width: 100%;">Vymazat všechny filtry</button>
+                        </div>
+                    </div>
+                </details>
             </div>
             
             <div id="borrowings-list"></div>
@@ -1162,8 +1380,12 @@
         };
 
         // Application version
-        const APP_VERSION = '1.2.0';
+        const APP_VERSION = '1.3.0';
         const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
+        const MANAGEMENT_TAB_IDS = new Set(['chips', 'employees', 'data-management']);
+        const BACKUP_PENDING_CHANGES_STORAGE_KEY = 'backup_pending_changes';
+        const BACKUP_HIGHLIGHT_THRESHOLD = 3;
+        const BACKUP_LEAVE_WARNING = 'V aplikaci máte nezálohované změny. Pokud nechcete odejít bez zálohy, zůstaňte na stránce a stiskněte tlačítko Zálohovat.';
 
         // Analytics & Statistics
         const Analytics = {
@@ -1270,6 +1492,115 @@
         let chips = Storage.get('chips', []);
         let employees = Storage.get('employees', []);
         let borrowings = Storage.get('borrowings', []);
+        let backupPendingChanges = parseInt(localStorage.getItem(BACKUP_PENDING_CHANGES_STORAGE_KEY), 10);
+
+        function getTotalItemsCount() {
+            return chips.length + employees.length + borrowings.length;
+        }
+
+        function getChangePluralForm(changeCount) {
+            if (changeCount === 1) return 'změnu';
+            if (changeCount >= 2 && changeCount <= 4) return 'změny';
+            return 'změn';
+        }
+
+        function ensureBackupTrackingInitialized() {
+            if (!Number.isFinite(backupPendingChanges) || backupPendingChanges < 0) {
+                backupPendingChanges = 0;
+                localStorage.setItem(BACKUP_PENDING_CHANGES_STORAGE_KEY, String(backupPendingChanges));
+            }
+        }
+
+        function getPendingBackupChanges() {
+            ensureBackupTrackingInitialized();
+            return backupPendingChanges;
+        }
+
+        function registerDataChange(changeCount = 1) {
+            ensureBackupTrackingInitialized();
+            const normalizedChangeCount = Number.isFinite(changeCount) && changeCount > 0
+                ? Math.floor(changeCount)
+                : 1;
+
+            backupPendingChanges += normalizedChangeCount;
+            localStorage.setItem(BACKUP_PENDING_CHANGES_STORAGE_KEY, String(backupPendingChanges));
+            updateMainMenuBackupAction();
+        }
+
+        function clearPendingBackupChanges() {
+            ensureBackupTrackingInitialized();
+            backupPendingChanges = 0;
+            localStorage.setItem(BACKUP_PENDING_CHANGES_STORAGE_KEY, String(backupPendingChanges));
+            updateMainMenuBackupAction();
+        }
+
+        function hasPendingBackupChanges() {
+            return getTotalItemsCount() > 0 && getPendingBackupChanges() > 0;
+        }
+
+        function updateMainMenuBackupAction() {
+            ensureBackupTrackingInitialized();
+
+            const backupActionBtn = document.getElementById('menu-backup-action');
+            if (!backupActionBtn) return;
+
+            const totalItems = getTotalItemsCount();
+            const isDatabaseEmpty = totalItems === 0;
+
+            if (isDatabaseEmpty) {
+                backupActionBtn.textContent = 'Obnovit ze zálohy';
+                backupActionBtn.dataset.mode = 'restore';
+                backupActionBtn.classList.remove('is-backup', 'needs-backup', 'needs-backup-strong');
+                backupActionBtn.classList.add('is-restore');
+                backupActionBtn.title = 'Importovat všechna data z XLSX zálohy';
+                return;
+            }
+
+            const pendingChanges = getPendingBackupChanges();
+            const shouldHighlightBackup = pendingChanges >= 1;
+            const shouldUseStrongHighlight = pendingChanges > BACKUP_HIGHLIGHT_THRESHOLD;
+
+            backupActionBtn.textContent = 'Zálohovat';
+            backupActionBtn.dataset.mode = 'backup';
+            backupActionBtn.classList.remove('is-restore');
+            backupActionBtn.classList.add('is-backup');
+            backupActionBtn.classList.toggle('needs-backup', shouldHighlightBackup);
+            backupActionBtn.classList.toggle('needs-backup-strong', shouldUseStrongHighlight);
+            backupActionBtn.title = shouldHighlightBackup
+                ? `Máte ${pendingChanges} nezálohované ${getChangePluralForm(pendingChanges)}.`
+                : 'Exportovat všechna data do XLSX zálohy';
+        }
+
+        function initializeMainMenuBackupAction() {
+            const backupActionBtn = document.getElementById('menu-backup-action');
+            if (!backupActionBtn) return;
+
+            backupActionBtn.addEventListener('click', async () => {
+                if (backupActionBtn.dataset.mode === 'restore') {
+                    const importExcelBtn = document.getElementById('import-all-data-excel-btn');
+                    if (importExcelBtn) {
+                        importExcelBtn.click();
+                    }
+                    return;
+                }
+
+                await exportAllDataExcel();
+            });
+
+            updateMainMenuBackupAction();
+        }
+
+        function initializeBeforeUnloadProtection() {
+            window.addEventListener('beforeunload', (event) => {
+                if (!hasPendingBackupChanges()) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.returnValue = BACKUP_LEAVE_WARNING;
+                return BACKUP_LEAVE_WARNING;
+            });
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1279,6 +1610,8 @@
             // Set version and GitHub link in footer
             document.getElementById('app-version').textContent = APP_VERSION;
             document.getElementById('github-link').href = GITHUB_REPO;
+
+            ensureBackupTrackingInitialized();
             
             initializeTabs();
             initializeChips();
@@ -1288,6 +1621,8 @@
             initializeExport();
             initializeEditEmployeeForm();
             initializeDataManagement();
+            initializeMainMenuBackupAction();
+            initializeBeforeUnloadProtection();
             
             // Set default dates
             const today = new Date();
@@ -1300,11 +1635,36 @@
 
         // Tab Navigation
         function initializeTabs() {
-            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabBtns = document.querySelectorAll('.tab-btn[data-tab]');
             const tabContents = document.querySelectorAll('.tab-content');
             const menuToggle = document.getElementById('menu-toggle');
             const tabs = document.getElementById('tabs');
             const menuIcon = document.getElementById('menu-icon');
+            const manageMenuGroup = document.getElementById('manage-menu-group');
+            const manageMenuToggle = document.getElementById('manage-menu-toggle');
+            const menuBackupAction = document.getElementById('menu-backup-action');
+
+            const closeMobileMenu = () => {
+                if (tabs && menuIcon) {
+                    tabs.classList.remove('open');
+                    menuIcon.textContent = '☰';
+                }
+            };
+
+            const closeManageMenu = () => {
+                if (!manageMenuGroup || !manageMenuToggle) return;
+                manageMenuGroup.classList.remove('open');
+                manageMenuToggle.setAttribute('aria-expanded', 'false');
+                const activeElement = document.activeElement;
+                if (activeElement instanceof HTMLElement && manageMenuGroup.contains(activeElement)) {
+                    activeElement.blur();
+                }
+            };
+
+            const updateManageMenuActiveState = (tabId) => {
+                if (!manageMenuToggle) return;
+                manageMenuToggle.classList.toggle('active', MANAGEMENT_TAB_IDS.has(tabId));
+            };
 
             // Mobile menu toggle
             if (menuToggle) {
@@ -1315,21 +1675,37 @@
                 });
             }
 
+            if (manageMenuToggle && manageMenuGroup) {
+                manageMenuToggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    manageMenuGroup.classList.toggle('open');
+                    manageMenuToggle.setAttribute('aria-expanded', manageMenuGroup.classList.contains('open') ? 'true' : 'false');
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                if (!manageMenuGroup || !manageMenuGroup.classList.contains('open')) return;
+                if (!manageMenuGroup.contains(event.target)) {
+                    closeManageMenu();
+                }
+            });
+
             tabBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const tabId = btn.dataset.tab;
+                    const targetTab = document.getElementById(`tab-${tabId}`);
+                    if (!targetTab) return;
                     
-                    // Always close mobile menu (CSS ensures it stays visible on desktop)
-                    if (tabs && menuIcon) {
-                        tabs.classList.remove('open');
-                        menuIcon.textContent = '☰';
-                    }
+                    closeMobileMenu();
+                    closeManageMenu();
                     
                     tabBtns.forEach(b => b.classList.remove('active'));
                     tabContents.forEach(c => c.classList.remove('active'));
                     
                     btn.classList.add('active');
-                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                    targetTab.classList.add('active');
+                    updateManageMenuActiveState(tabId);
                     
                     // Update stats when switching to data management tab
                     if (tabId === 'data-management') {
@@ -1343,6 +1719,18 @@
                     }
                 });
             });
+
+            if (menuBackupAction) {
+                menuBackupAction.addEventListener('click', () => {
+                    closeMobileMenu();
+                    closeManageMenu();
+                });
+            }
+
+            const activeTabBtn = document.querySelector('.tab-btn[data-tab].active');
+            if (activeTabBtn) {
+                updateManageMenuActiveState(activeTabBtn.dataset.tab);
+            }
         }
 
         // Chips Management
@@ -1364,6 +1752,7 @@
                 
                 chips.push(chip);
                 Storage.set('chips', chips);
+                registerDataChange();
                 Analytics.track('chip_added');
                 form.reset();
                 renderChips();
@@ -1383,6 +1772,7 @@
 
         function renderChips() {
             const container = document.getElementById('chips-list');
+            updateMainMenuBackupAction();
             
             if (chips.length === 0) {
                 container.innerHTML = '<div class="empty-state">Zatím nejsou přidány žádné čipy.</div>';
@@ -1425,6 +1815,7 @@
             
             chips = chips.filter(c => c.id !== id);
             Storage.set('chips', chips);
+            registerDataChange();
             Analytics.track('chip_deleted');
             renderChips();
         }
@@ -1455,6 +1846,9 @@
                     });
                     
                     Storage.set('chips', chips);
+                    if (imported > 0) {
+                        registerDataChange(imported);
+                    }
                     renderChips();
                     Analytics.track('chips_imported', { count: imported });
                     await CustomDialog.alert(`Importováno ${imported} čipů.`);
@@ -1506,6 +1900,7 @@
                 
                 employees.push(employee);
                 Storage.set('employees', employees);
+                registerDataChange();
                 Analytics.track('employee_added');
                 form.reset();
                 renderEmployees();
@@ -1525,6 +1920,7 @@
 
         function renderEmployees() {
             const container = document.getElementById('employees-list');
+            updateMainMenuBackupAction();
             
             if (employees.length === 0) {
                 container.innerHTML = '<div class="empty-state">Zatím nejsou přidáni žádní zaměstnanci.</div>';
@@ -1574,6 +1970,7 @@
             
             employees = employees.filter(e => e.id !== id);
             Storage.set('employees', employees);
+            registerDataChange();
             Analytics.track('employee_deleted');
             renderEmployees();
         }
@@ -1613,6 +2010,11 @@
                 
                 const index = employees.findIndex(e => e.id === id);
                 if (index !== -1) {
+                    const existingEmployee = employees[index];
+                    const hasChanged = existingEmployee.name !== name ||
+                        existingEmployee.employeeNumber !== number ||
+                        (existingEmployee.department || '') !== department;
+
                     employees[index] = {
                         id: id,
                         name: name,
@@ -1621,7 +2023,10 @@
                     };
                     
                     Storage.set('employees', employees);
-                    Analytics.track('employee_updated');
+                    if (hasChanged) {
+                        registerDataChange();
+                        Analytics.track('employee_updated');
+                    }
                     closeEditEmployeeModal();
                     renderEmployees();
                     // Re-render borrowings to update employee info
@@ -1661,6 +2066,9 @@
                     });
                     
                     Storage.set('employees', employees);
+                    if (imported > 0) {
+                        registerDataChange(imported);
+                    }
                     renderEmployees();
                     Analytics.track('employees_imported', { count: imported });
                     await CustomDialog.alert(`Importováno ${imported} zaměstnanců.`);
@@ -1897,6 +2305,7 @@
                 
                 borrowings.push(borrowing);
                 Storage.set('borrowings', borrowings);
+                registerDataChange();
                 Analytics.track('borrowing_created', { chipsCount: newBorrowingSelectedChipIds.length });
                 
                 // Reset form
@@ -2025,16 +2434,53 @@
                 }));
         }
 
+        function getCurrentMonthKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function formatMonthKey(monthKey) {
+            const [year, month] = monthKey.split('-').map(Number);
+            const monthNames = [
+                'leden', 'únor', 'březen', 'duben', 'květen', 'červen',
+                'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'
+            ];
+            return `${monthNames[month - 1]} ${year}`;
+        }
+
+        function updateBorrowingsMonthFilterOptions() {
+            const monthSelect = document.getElementById('filter-month');
+            if (!monthSelect) return;
+
+            const previousValue = monthSelect.value;
+            const currentMonthKey = getCurrentMonthKey();
+            const monthsInData = getMonthsWithBorrowings();
+            const monthOptions = Array.from(new Set([currentMonthKey, ...monthsInData])).sort().reverse();
+
+            monthSelect.innerHTML = `
+                <option value="all">Všechny měsíce</option>
+                ${monthOptions.map(monthKey => `<option value="${monthKey}">${formatMonthKey(monthKey)}</option>`).join('')}
+            `;
+
+            const canRestorePreviousValue = previousValue === 'all' || monthOptions.includes(previousValue);
+            monthSelect.value = canRestorePreviousValue ? previousValue : currentMonthKey;
+        }
+
         // Borrowings Management
         function initializeBorrowings() {
+            updateBorrowingsMonthFilterOptions();
             renderBorrowings();
             
             // Setup filter listeners
+            document.getElementById('filter-search').addEventListener('input', renderBorrowings);
+            document.getElementById('filter-month').addEventListener('change', renderBorrowings);
             document.getElementById('filter-employee').addEventListener('input', renderBorrowings);
             document.getElementById('filter-department').addEventListener('input', renderBorrowings);
             document.getElementById('filter-chip').addEventListener('input', renderBorrowings);
             document.getElementById('filter-status').addEventListener('change', renderBorrowings);
             document.getElementById('clear-filters').addEventListener('click', () => {
+                document.getElementById('filter-search').value = '';
+                document.getElementById('filter-month').value = getCurrentMonthKey();
                 document.getElementById('filter-employee').value = '';
                 document.getElementById('filter-department').value = '';
                 document.getElementById('filter-chip').value = '';
@@ -2090,6 +2536,8 @@
 
         function renderBorrowings() {
             const container = document.getElementById('borrowings-list');
+            updateMainMenuBackupAction();
+            updateBorrowingsMonthFilterOptions();
             
             if (borrowings.length === 0) {
                 container.innerHTML = '<div class="empty-state">Zatím nejsou žádné výpůjčky.</div>';
@@ -2100,38 +2548,68 @@
             const chipConflicts = getChipConflicts();
             
             // Get filter values
+            const filterSearch = document.getElementById('filter-search').value.toLowerCase().trim();
+            const filterMonth = document.getElementById('filter-month').value;
             const filterEmployee = document.getElementById('filter-employee').value.toLowerCase().trim();
             const filterDepartment = document.getElementById('filter-department').value.toLowerCase().trim();
             const filterChip = document.getElementById('filter-chip').value.toLowerCase().trim();
             const filterStatus = document.getElementById('filter-status').value;
             
-            // Filter borrowings
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            let monthStart = null;
+            let monthEnd = null;
+            if (filterMonth !== 'all') {
+                const [year, month] = filterMonth.split('-').map(Number);
+                monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+                monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+            }
             
             let filtered = borrowings.filter(b => {
+                const employee = employees.find(e => e.id === b.employeeId);
+                const chipIdentifiers = b.chips
+                    .map(chipId => {
+                        const chip = chips.find(c => c.id === chipId);
+                        return chip ? chip.identifier.toLowerCase() : '';
+                    })
+                    .filter(identifier => identifier);
+
+                // Simple fulltext search
+                if (filterSearch) {
+                    const searchText = [
+                        employee ? employee.name.toLowerCase() : '',
+                        employee && employee.department ? employee.department.toLowerCase() : '',
+                        ...chipIdentifiers
+                    ].join(' ');
+
+                    if (!searchText.includes(filterSearch)) return false;
+                }
+
+                // Month overlap filter
+                if (monthStart && monthEnd) {
+                    const borrowingStart = new Date(b.startDate);
+                    const borrowingEnd = b.endDate ? new Date(b.endDate) : new Date();
+
+                    if (borrowingStart > monthEnd || borrowingEnd < monthStart) {
+                        return false;
+                    }
+                }
+
                 // Filter by employee
                 if (filterEmployee) {
-                    const employee = employees.find(e => e.id === b.employeeId);
                     if (!employee) return false;
-                    const employeeMatch = employee.name.toLowerCase().includes(filterEmployee) || 
-                                        employee.employeeNumber.toLowerCase().includes(filterEmployee);
+                    const employeeNumber = employee.employeeNumber ? employee.employeeNumber.toLowerCase() : '';
+                    const employeeMatch = employee.name.toLowerCase().includes(filterEmployee) || employeeNumber.includes(filterEmployee);
                     if (!employeeMatch) return false;
                 }
                 
                 // Filter by department
                 if (filterDepartment) {
-                    const employee = employees.find(e => e.id === b.employeeId);
                     if (!employee || !employee.department) return false;
                     if (!employee.department.toLowerCase().includes(filterDepartment)) return false;
                 }
                 
                 // Filter by chip
                 if (filterChip) {
-                    const hasChip = b.chips.some(chipId => {
-                        const chip = chips.find(c => c.id === chipId);
-                        return chip && chip.identifier.toLowerCase().includes(filterChip);
-                    });
+                    const hasChip = chipIdentifiers.some(identifier => identifier.includes(filterChip));
                     if (!hasChip) return false;
                 }
                 
@@ -2271,6 +2749,7 @@
             
             borrowings = borrowings.filter(b => b.id !== id);
             Storage.set('borrowings', borrowings);
+            registerDataChange();
             renderBorrowings();
         }
 
@@ -2380,6 +2859,9 @@
                     });
                     
                     Storage.set('borrowings', borrowings);
+                    if (imported > 0) {
+                        registerDataChange(imported);
+                    }
                     renderBorrowings();
                     Analytics.track('borrowings_imported', { count: imported, skipped: skipped });
                     
@@ -2407,6 +2889,7 @@
             borrowing.endDate = today.toISOString().split('T')[0];
             
             Storage.set('borrowings', borrowings);
+            registerDataChange();
             Analytics.track('borrowing_ended');
             renderBorrowings();
         }
@@ -2637,6 +3120,13 @@
             
             const index = borrowings.findIndex(b => b.id === id);
             if (index !== -1) {
+                const existingBorrowing = borrowings[index];
+                const hasChanged = existingBorrowing.employeeId !== employeeId ||
+                    existingBorrowing.startDate !== startDate ||
+                    (existingBorrowing.endDate || null) !== endDate ||
+                    existingBorrowing.chips.length !== editSelectedChipIds.length ||
+                    existingBorrowing.chips.some((chipId, chipIndex) => chipId !== editSelectedChipIds[chipIndex]);
+
                 borrowings[index] = {
                     id: id,
                     employeeId: employeeId,
@@ -2646,7 +3136,10 @@
                 };
                 
                 Storage.set('borrowings', borrowings);
-                Analytics.track('borrowing_updated');
+                if (hasChanged) {
+                    registerDataChange();
+                    Analytics.track('borrowing_updated');
+                }
                 closeEditModal();
                 renderBorrowings();
             }
@@ -2864,6 +3357,7 @@
             // Update stats and months
             updateDataStats();
             updateMonthsOverview();
+            updateMainMenuBackupAction();
         }
 
         function updateDataStats() {
@@ -2971,6 +3465,9 @@
             });
             
             Storage.set('borrowings', borrowings);
+            if (count > 0) {
+                registerDataChange(count);
+            }
             renderBorrowings();
             updateDataStats();
             updateMonthsOverview();
@@ -3049,6 +3546,7 @@
                     renderBorrowings();
                     updateDataStats();
                     updateMonthsOverview();
+                    clearPendingBackupChanges();
                     
                     Analytics.track('all_data_imported', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
                     await CustomDialog.alert(`Data byla úspěšně importována!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
@@ -3116,6 +3614,7 @@
             
             // Export
             XLSX.writeFile(workbook, filename);
+            clearPendingBackupChanges();
             
             Analytics.track('all_data_exported_excel', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
         }
@@ -3193,6 +3692,7 @@
                     renderBorrowings();
                     updateDataStats();
                     updateMonthsOverview();
+                    clearPendingBackupChanges();
                     
                     Analytics.track('all_data_imported_excel', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
                     await CustomDialog.alert(`Data byla úspěšně importována z Excel!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
@@ -3228,6 +3728,7 @@
             renderBorrowings();
             updateDataStats();
             updateMonthsOverview();
+            clearPendingBackupChanges();
             
             await CustomDialog.alert('Všechna data byla smazána.');
         }
