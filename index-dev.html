@@ -161,6 +161,13 @@
             box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
         }
 
+        .menu-action-btn.needs-backup-strong {
+            animation: backupPulseStrong 1s ease-in-out infinite;
+            transform-origin: center;
+            border-width: 3px;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+        }
+
         @keyframes backupPulse {
             0% {
                 transform: translateY(0);
@@ -173,6 +180,21 @@
             100% {
                 transform: translateY(0);
                 box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+
+        @keyframes backupPulseStrong {
+            0% {
+                transform: translateY(0) scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+            }
+            60% {
+                transform: translateY(-2px) scale(1.05);
+                box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
             }
         }
 
@@ -1296,8 +1318,9 @@
         const APP_VERSION = '1.3.0-dev';
         const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
         const MANAGEMENT_TAB_IDS = new Set(['chips', 'employees', 'data-management']);
-        const BACKUP_STATE_STORAGE_KEY = 'backup_state_total_items';
+        const BACKUP_PENDING_CHANGES_STORAGE_KEY = 'backup_pending_changes';
         const BACKUP_HIGHLIGHT_THRESHOLD = 3;
+        const BACKUP_LEAVE_WARNING = 'V aplikaci máte nezálohované změny. Pokud nechcete odejít bez zálohy, zůstaňte na stránce a stiskněte tlačítko Zálohovat.';
 
         // Analytics & Statistics
         const Analytics = {
@@ -1404,26 +1427,54 @@
         let chips = Storage.get('chips', []);
         let employees = Storage.get('employees', []);
         let borrowings = Storage.get('borrowings', []);
-        let backupStateTotalItems = parseInt(localStorage.getItem(BACKUP_STATE_STORAGE_KEY), 10);
+        let backupPendingChanges = parseInt(localStorage.getItem(BACKUP_PENDING_CHANGES_STORAGE_KEY), 10);
 
         function getTotalItemsCount() {
             return chips.length + employees.length + borrowings.length;
         }
 
-        function ensureBackupStateInitialized() {
-            if (!Number.isFinite(backupStateTotalItems)) {
-                backupStateTotalItems = getTotalItemsCount();
-                localStorage.setItem(BACKUP_STATE_STORAGE_KEY, String(backupStateTotalItems));
+        function getChangePluralForm(changeCount) {
+            if (changeCount === 1) return 'změnu';
+            if (changeCount >= 2 && changeCount <= 4) return 'změny';
+            return 'změn';
+        }
+
+        function ensureBackupTrackingInitialized() {
+            if (!Number.isFinite(backupPendingChanges) || backupPendingChanges < 0) {
+                backupPendingChanges = 0;
+                localStorage.setItem(BACKUP_PENDING_CHANGES_STORAGE_KEY, String(backupPendingChanges));
             }
         }
 
-        function rememberCurrentBackupState() {
-            backupStateTotalItems = getTotalItemsCount();
-            localStorage.setItem(BACKUP_STATE_STORAGE_KEY, String(backupStateTotalItems));
+        function getPendingBackupChanges() {
+            ensureBackupTrackingInitialized();
+            return backupPendingChanges;
+        }
+
+        function registerDataChange(changeCount = 1) {
+            ensureBackupTrackingInitialized();
+            const normalizedChangeCount = Number.isFinite(changeCount) && changeCount > 0
+                ? Math.floor(changeCount)
+                : 1;
+
+            backupPendingChanges += normalizedChangeCount;
+            localStorage.setItem(BACKUP_PENDING_CHANGES_STORAGE_KEY, String(backupPendingChanges));
+            updateMainMenuBackupAction();
+        }
+
+        function clearPendingBackupChanges() {
+            ensureBackupTrackingInitialized();
+            backupPendingChanges = 0;
+            localStorage.setItem(BACKUP_PENDING_CHANGES_STORAGE_KEY, String(backupPendingChanges));
+            updateMainMenuBackupAction();
+        }
+
+        function hasPendingBackupChanges() {
+            return getTotalItemsCount() > 0 && getPendingBackupChanges() > 0;
         }
 
         function updateMainMenuBackupAction() {
-            ensureBackupStateInitialized();
+            ensureBackupTrackingInitialized();
 
             const backupActionBtn = document.getElementById('menu-backup-action');
             if (!backupActionBtn) return;
@@ -1432,28 +1483,26 @@
             const isDatabaseEmpty = totalItems === 0;
 
             if (isDatabaseEmpty) {
-                if (backupStateTotalItems !== 0) {
-                    rememberCurrentBackupState();
-                }
-
                 backupActionBtn.textContent = 'Obnovit ze zálohy';
                 backupActionBtn.dataset.mode = 'restore';
-                backupActionBtn.classList.remove('is-backup', 'needs-backup');
+                backupActionBtn.classList.remove('is-backup', 'needs-backup', 'needs-backup-strong');
                 backupActionBtn.classList.add('is-restore');
                 backupActionBtn.title = 'Importovat všechna data z XLSX zálohy';
                 return;
             }
 
-            const addedItemsSinceSnapshot = Math.max(0, totalItems - backupStateTotalItems);
-            const shouldHighlightBackup = addedItemsSinceSnapshot > BACKUP_HIGHLIGHT_THRESHOLD;
+            const pendingChanges = getPendingBackupChanges();
+            const shouldHighlightBackup = pendingChanges >= 1;
+            const shouldUseStrongHighlight = pendingChanges > BACKUP_HIGHLIGHT_THRESHOLD;
 
             backupActionBtn.textContent = 'Zálohovat';
             backupActionBtn.dataset.mode = 'backup';
             backupActionBtn.classList.remove('is-restore');
             backupActionBtn.classList.add('is-backup');
             backupActionBtn.classList.toggle('needs-backup', shouldHighlightBackup);
+            backupActionBtn.classList.toggle('needs-backup-strong', shouldUseStrongHighlight);
             backupActionBtn.title = shouldHighlightBackup
-                ? `Od poslední zálohy přibylo ${addedItemsSinceSnapshot} položek.`
+                ? `Máte ${pendingChanges} nezálohované ${getChangePluralForm(pendingChanges)}.`
                 : 'Exportovat všechna data do XLSX zálohy';
         }
 
@@ -1476,6 +1525,18 @@
             updateMainMenuBackupAction();
         }
 
+        function initializeBeforeUnloadProtection() {
+            window.addEventListener('beforeunload', (event) => {
+                if (!hasPendingBackupChanges()) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.returnValue = BACKUP_LEAVE_WARNING;
+                return BACKUP_LEAVE_WARNING;
+            });
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize analytics
@@ -1485,7 +1546,7 @@
             document.getElementById('app-version').textContent = APP_VERSION;
             document.getElementById('github-link').href = GITHUB_REPO;
 
-            ensureBackupStateInitialized();
+            ensureBackupTrackingInitialized();
             
             initializeTabs();
             initializeChips();
@@ -1496,6 +1557,7 @@
             initializeEditEmployeeForm();
             initializeDataManagement();
             initializeMainMenuBackupAction();
+            initializeBeforeUnloadProtection();
             
             // Set default dates
             const today = new Date();
@@ -1625,6 +1687,7 @@
                 
                 chips.push(chip);
                 Storage.set('chips', chips);
+                registerDataChange();
                 Analytics.track('chip_added');
                 form.reset();
                 renderChips();
@@ -1687,6 +1750,7 @@
             
             chips = chips.filter(c => c.id !== id);
             Storage.set('chips', chips);
+            registerDataChange();
             Analytics.track('chip_deleted');
             renderChips();
         }
@@ -1717,6 +1781,9 @@
                     });
                     
                     Storage.set('chips', chips);
+                    if (imported > 0) {
+                        registerDataChange(imported);
+                    }
                     renderChips();
                     Analytics.track('chips_imported', { count: imported });
                     await CustomDialog.alert(`Importováno ${imported} čipů.`);
@@ -1768,6 +1835,7 @@
                 
                 employees.push(employee);
                 Storage.set('employees', employees);
+                registerDataChange();
                 Analytics.track('employee_added');
                 form.reset();
                 renderEmployees();
@@ -1837,6 +1905,7 @@
             
             employees = employees.filter(e => e.id !== id);
             Storage.set('employees', employees);
+            registerDataChange();
             Analytics.track('employee_deleted');
             renderEmployees();
         }
@@ -1876,6 +1945,11 @@
                 
                 const index = employees.findIndex(e => e.id === id);
                 if (index !== -1) {
+                    const existingEmployee = employees[index];
+                    const hasChanged = existingEmployee.name !== name ||
+                        existingEmployee.employeeNumber !== number ||
+                        (existingEmployee.department || '') !== department;
+
                     employees[index] = {
                         id: id,
                         name: name,
@@ -1884,7 +1958,10 @@
                     };
                     
                     Storage.set('employees', employees);
-                    Analytics.track('employee_updated');
+                    if (hasChanged) {
+                        registerDataChange();
+                        Analytics.track('employee_updated');
+                    }
                     closeEditEmployeeModal();
                     renderEmployees();
                     // Re-render borrowings to update employee info
@@ -1924,6 +2001,9 @@
                     });
                     
                     Storage.set('employees', employees);
+                    if (imported > 0) {
+                        registerDataChange(imported);
+                    }
                     renderEmployees();
                     Analytics.track('employees_imported', { count: imported });
                     await CustomDialog.alert(`Importováno ${imported} zaměstnanců.`);
@@ -2160,6 +2240,7 @@
                 
                 borrowings.push(borrowing);
                 Storage.set('borrowings', borrowings);
+                registerDataChange();
                 Analytics.track('borrowing_created', { chipsCount: newBorrowingSelectedChipIds.length });
                 
                 // Reset form
@@ -2535,6 +2616,7 @@
             
             borrowings = borrowings.filter(b => b.id !== id);
             Storage.set('borrowings', borrowings);
+            registerDataChange();
             renderBorrowings();
         }
 
@@ -2644,6 +2726,9 @@
                     });
                     
                     Storage.set('borrowings', borrowings);
+                    if (imported > 0) {
+                        registerDataChange(imported);
+                    }
                     renderBorrowings();
                     Analytics.track('borrowings_imported', { count: imported, skipped: skipped });
                     
@@ -2671,6 +2756,7 @@
             borrowing.endDate = today.toISOString().split('T')[0];
             
             Storage.set('borrowings', borrowings);
+            registerDataChange();
             Analytics.track('borrowing_ended');
             renderBorrowings();
         }
@@ -2901,6 +2987,13 @@
             
             const index = borrowings.findIndex(b => b.id === id);
             if (index !== -1) {
+                const existingBorrowing = borrowings[index];
+                const hasChanged = existingBorrowing.employeeId !== employeeId ||
+                    existingBorrowing.startDate !== startDate ||
+                    (existingBorrowing.endDate || null) !== endDate ||
+                    existingBorrowing.chips.length !== editSelectedChipIds.length ||
+                    existingBorrowing.chips.some((chipId, chipIndex) => chipId !== editSelectedChipIds[chipIndex]);
+
                 borrowings[index] = {
                     id: id,
                     employeeId: employeeId,
@@ -2910,7 +3003,10 @@
                 };
                 
                 Storage.set('borrowings', borrowings);
-                Analytics.track('borrowing_updated');
+                if (hasChanged) {
+                    registerDataChange();
+                    Analytics.track('borrowing_updated');
+                }
                 closeEditModal();
                 renderBorrowings();
             }
@@ -3236,6 +3332,9 @@
             });
             
             Storage.set('borrowings', borrowings);
+            if (count > 0) {
+                registerDataChange(count);
+            }
             renderBorrowings();
             updateDataStats();
             updateMonthsOverview();
@@ -3314,8 +3413,7 @@
                     renderBorrowings();
                     updateDataStats();
                     updateMonthsOverview();
-                    rememberCurrentBackupState();
-                    updateMainMenuBackupAction();
+                    clearPendingBackupChanges();
                     
                     Analytics.track('all_data_imported', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
                     await CustomDialog.alert(`Data byla úspěšně importována!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
@@ -3383,8 +3481,7 @@
             
             // Export
             XLSX.writeFile(workbook, filename);
-            rememberCurrentBackupState();
-            updateMainMenuBackupAction();
+            clearPendingBackupChanges();
             
             Analytics.track('all_data_exported_excel', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
         }
@@ -3462,8 +3559,7 @@
                     renderBorrowings();
                     updateDataStats();
                     updateMonthsOverview();
-                    rememberCurrentBackupState();
-                    updateMainMenuBackupAction();
+                    clearPendingBackupChanges();
                     
                     Analytics.track('all_data_imported_excel', { chips: chips.length, employees: employees.length, borrowings: borrowings.length });
                     await CustomDialog.alert(`Data byla úspěšně importována z Excel!\n\nČipy: ${chips.length}\nZaměstnanci: ${employees.length}\nVýpůjčky: ${borrowings.length}`);
@@ -3499,8 +3595,7 @@
             renderBorrowings();
             updateDataStats();
             updateMonthsOverview();
-            rememberCurrentBackupState();
-            updateMainMenuBackupAction();
+            clearPendingBackupChanges();
             
             await CustomDialog.alert('Všechna data byla smazána.');
         }
