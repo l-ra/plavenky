@@ -3210,8 +3210,8 @@
                     const lastDate = new Date(Math.min(bEnd, endDate));
                     
                     while (currentDate <= lastDate) {
-                        const day = currentDate.getDate();
-                        const monthNum = currentDate.getMonth() + 1;
+                        const day = String(currentDate.getDate()).padStart(2, '0');
+                        const monthNum = String(currentDate.getMonth() + 1).padStart(2, '0');
                         const yearNum = currentDate.getFullYear();
                         
                         exportData.push({
@@ -3220,7 +3220,7 @@
                             chipId: chipId,
                             chipIdentifier: chip.identifier,
                             date: new Date(currentDate),
-                            dateFormatted: `${day}/${monthNum}/${yearNum}`,
+                            dateFormatted: `${day}.${monthNum}.${yearNum}`,
                             employeeNumber: employee.employeeNumber,
                             employeeName: employee.name,
                             department: employee.department || ''
