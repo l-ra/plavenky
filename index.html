@@ -2675,6 +2675,24 @@
             const startDate = new Date(year, month - 1, 1);
             const endDate = new Date(year, month, 0);
             
+            // Parse date-only strings (YYYY-MM-DD) as local midnight to avoid
+            // timezone shifts that can drop the last day from month export.
+            const parseDateAtLocalMidnight = (dateValue) => {
+                const value = String(dateValue || '').trim();
+                const isoDateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                
+                if (isoDateMatch) {
+                    const [, y, m, d] = isoDateMatch;
+                    return new Date(Number(y), Number(m) - 1, Number(d));
+                }
+                
+                const parsed = new Date(value);
+                return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+            };
+            
+            const now = new Date();
+            const todayAtMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
             const exportData = [];
             
             // For each borrowing
@@ -2682,8 +2700,8 @@
                 const employee = employees.find(e => e.id === borrowing.employeeId);
                 if (!employee) return;
                 
-                const bStart = new Date(borrowing.startDate);
-                const bEnd = borrowing.endDate ? new Date(borrowing.endDate) : new Date();
+                const bStart = parseDateAtLocalMidnight(borrowing.startDate);
+                const bEnd = borrowing.endDate ? parseDateAtLocalMidnight(borrowing.endDate) : todayAtMidnight;
                 
                 // Check if borrowing overlaps with selected month
                 if (bStart > endDate || bEnd < startDate) return;
