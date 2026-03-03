@@ -1380,7 +1380,7 @@
         };
 
         // Application version
-        const APP_VERSION = '1.3.0';
+        const APP_VERSION = '1.4.0';
         const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
         const MANAGEMENT_TAB_IDS = new Set(['chips', 'employees', 'data-management']);
         const BACKUP_PENDING_CHANGES_STORAGE_KEY = 'backup_pending_changes';
@@ -1692,7 +1692,7 @@
             });
 
             tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     const tabId = btn.dataset.tab;
                     const targetTab = document.getElementById(`tab-${tabId}`);
                     if (!targetTab) return;
@@ -1716,6 +1716,11 @@
                     // Load help content when switching to help tab
                     if (tabId === 'help') {
                         if (typeof loadHelpContent === 'function') loadHelpContent();
+                    }
+
+                    // Show guidance when opening new borrowing without required data
+                    if (tabId === 'new-borrowing') {
+                        await showNewBorrowingRequirementsInfoIfMissing();
                     }
                 });
             });
@@ -2164,8 +2169,58 @@
 
         // New Borrowing Form
         let newBorrowingSelectedChipIds = [];
+
+        async function showNewBorrowingRequirementsInfoIfMissing() {
+            const missingEmployees = employees.length === 0;
+            const missingChips = chips.length === 0;
+
+            if (!missingEmployees && !missingChips) return;
+
+            let message = 'Pro vytvoření nové výpůjčky je potřeba nejprve doplnit základní data.\n\n';
+
+            if (missingEmployees && missingChips) {
+                message += 'Chybí zaměstnanci i čipy.\n';
+                message += 'V menu Správa přejděte na:\n';
+                message += '• Správa zaměstnanců (přidání zaměstnanců)\n';
+                message += '• Správa čipů (přidání čipů)';
+            } else if (missingEmployees) {
+                message += 'Chybí zaměstnanci.\n';
+                message += 'V menu Správa přejděte na Správa zaměstnanců a přidejte alespoň jednoho zaměstnance.';
+            } else {
+                message += 'Chybí čipy.\n';
+                message += 'V menu Správa přejděte na Správa čipů a přidejte alespoň jeden čip.';
+            }
+
+            await CustomDialog.alert(message, 'Nejprve doplňte data');
+        }
+
+        async function showMissingEmployeesInfoIfMissing() {
+            if (employees.length > 0) return;
+
+            let message = 'Pro výběr zaměstnance je potřeba nejprve doplnit základní data.\n\n';
+            message += 'Chybí zaměstnanci.\n';
+            message += 'V menu Správa přejděte na Správa zaměstnanců a přidejte alespoň jednoho zaměstnance.';
+
+            await CustomDialog.alert(message, 'Nejprve doplňte data');
+        }
+
+        async function showMissingChipsInfoIfMissing() {
+            if (chips.length > 0) return;
+
+            let message = 'Pro výběr čipu je potřeba nejprve doplnit základní data.\n\n';
+            message += 'Chybí čipy.\n';
+            message += 'V menu Správa přejděte na Správa čipů a přidejte alespoň jeden čip.';
+
+            await CustomDialog.alert(message, 'Nejprve doplňte data');
+        }
         
         function initializeNewBorrowingForm() {
+            const employeeSearchInput = document.getElementById('employee-search');
+
+            employeeSearchInput.addEventListener('click', async () => {
+                await showMissingEmployeesInfoIfMissing();
+            });
+
             // Employee autocomplete
             setupAutocomplete(
                 'employee-search',
@@ -2186,6 +2241,10 @@
             const chipSuggestionsEl = document.getElementById('chip-suggestions');
             const selectedChipsContainer = document.getElementById('selected-chips');
             let currentChipSuggestions = [];
+
+            chipSearchInput.addEventListener('click', async () => {
+                await showMissingChipsInfoIfMissing();
+            });
             
             chipSearchInput.addEventListener('input', () => {
                 const value = chipSearchInput.value.toLowerCase().trim();
@@ -3209,8 +3268,8 @@
                     const lastDate = new Date(Math.min(bEnd, endDate));
                     
                     while (currentDate <= lastDate) {
-                        const day = currentDate.getDate();
-                        const monthNum = currentDate.getMonth() + 1;
+                        const day = String(currentDate.getDate()).padStart(2, '0');
+                        const monthNum = String(currentDate.getMonth() + 1).padStart(2, '0');
                         const yearNum = currentDate.getFullYear();
                         
                         exportData.push({
@@ -3219,7 +3278,7 @@
                             chipId: chipId,
                             chipIdentifier: chip.identifier,
                             date: new Date(currentDate),
-                            dateFormatted: `${day}/${monthNum}/${yearNum}`,
+                            dateFormatted: `${day}.${monthNum}.${yearNum}`,
                             employeeNumber: employee.employeeNumber,
                             employeeName: employee.name,
                             department: employee.department || ''
