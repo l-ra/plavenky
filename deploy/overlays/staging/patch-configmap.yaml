@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plavenky-config
+data:
+  config.json: |
+    {
+      "statsEndpoint": "https://staging-stats.apps2.r73.info/plavenky-stat/receive-stats.php"
+    }

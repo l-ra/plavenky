@@ -1,0 +1,105 @@
+name: Deploy Plavenky
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'index-dev.html'
+      - 'config.json'
+      - 'deploy/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Prostředí pro nasazení'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+          - both
+
+env:
+  KUSTOMIZE_VERSION: '5.4.3'
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' && 
+      (github.event.inputs.environment == 'staging' || github.event.inputs.environment == 'both')
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubeconfig for staging
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+        env:
+          KUBECONFIG: ${{ github.workspace }}/.kube/staging-config
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: ${{ env.KUSTOMIZE_VERSION }}
+
+      - name: Validate staging manifests
+        run: |
+          kustomize build deploy/overlays/staging > /tmp/staging-manifests.yaml
+          echo "--- Staging manifests ---"
+          cat /tmp/staging-manifests.yaml
+
+      - name: Deploy to staging cluster
+        run: |
+          export KUBECONFIG="$HOME/.kube/config"
+          kubectl apply -k deploy/overlays/staging
+          kubectl -n plavenky-staging rollout status deployment/staging-plavenky --timeout=120s
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f "$HOME/.kube/config"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' && 
+      (github.event.inputs.environment == 'production' || github.event.inputs.environment == 'both')
+    needs: [deploy-staging]
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubeconfig for production
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: ${{ env.KUSTOMIZE_VERSION }}
+
+      - name: Validate production manifests
+        run: |
+          kustomize build deploy/overlays/production > /tmp/production-manifests.yaml
+          echo "--- Production manifests ---"
+          cat /tmp/production-manifests.yaml
+
+      - name: Deploy to production cluster
+        run: |
+          export KUBECONFIG="$HOME/.kube/config"
+          kubectl apply -k deploy/overlays/production
+          kubectl -n plavenky-production rollout status deployment/prod-plavenky --timeout=180s
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f "$HOME/.kube/config"

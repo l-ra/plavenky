@@ -16,6 +16,11 @@ Thumbs.db
 # Local environment
 .env
 
+# Kubeconfig files - NEVER commit these
+kubeconfig*
+*.kubeconfig
+.kube/
+
 # Backup files
 *.bak
 *~
