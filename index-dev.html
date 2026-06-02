@@ -3323,6 +3323,12 @@
                 ]);
             });
             
+            const EXCEL_DATE_FORMAT = 'dd/mm/yyyy';
+            const dateToExcelSerial = (date) => {
+                const utcMidnight = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+                return (utcMidnight - Date.UTC(1899, 11, 30)) / 86400000;
+            };
+            
             // Create worksheet
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             
@@ -3360,17 +3366,26 @@
                 }
             });
             
-            // Style data rows: borders and Excel date formatting for the last column
+            // Style data rows: borders; last column as Excel date (DD/MM/YYYY)
             const totalRows = wsData.length;
             for (let r = 2; r < totalRows; r++) {
                 headerCols.forEach((col, c) => {
                     const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
-                    if (ws[cellRef]) {
+                    if (!ws[cellRef]) return;
+                    
+                    if (c === 4) {
+                        const dateValue = exportData[r - 2].date;
+                        ws[cellRef] = {
+                            t: 'n',
+                            v: dateToExcelSerial(dateValue),
+                            z: EXCEL_DATE_FORMAT,
+                            s: {
+                                numFmt: EXCEL_DATE_FORMAT,
+                                border: thinBorder
+                            }
+                        };
+                    } else {
                         ws[cellRef].s = { border: thinBorder };
-                        if (c === 4) {
-                            ws[cellRef].z = 'd/m/yyyy';
-                            ws[cellRef].s.numFmt = 'd/m/yyyy';
-                        }
                     }
                 });
             }
