@@ -5,6 +5,16 @@ Všechny významné změny v projektu Evidence plaveckých čipů budou dokument
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/)
 a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [1.5.0] - 2026-06-07
+
+### Přidáno
+- Nastavitelný formát data v měsíčním exportu výpůjček do Excelu
+- Nápověda s příklady podporovaných formátů data (tooltip u pole formátu)
+- Uložení preferovaného formátu data do localStorage
+
+### Změněno
+- Datum výpůjčky v měsíčním exportu je nyní uloženo jako excelovské datum s uživatelem zvoleným formátem místo pevného textového zápisu
+
 ## [1.2.0] - 2026-02-20
 
 ### Přidáno
@@ -68,6 +78,7 @@ a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 - JSON Lines formát pro ukládání statistik (jeden soubor na měsíc)
 - Konfigurovatelná složka pro statistiky přes proměnnou prostředí
 
+[1.5.0]: https://github.com/l-ra/plavenky/releases/tag/v1.5.0
 [1.2.0]: https://github.com/l-ra/plavenky/releases/tag/v1.2.0
 [1.1.0]: https://github.com/l-ra/plavenky/releases/tag/v1.1.0
 [1.0.0]: https://github.com/l-ra/plavenky/releases/tag/v1.0.0
