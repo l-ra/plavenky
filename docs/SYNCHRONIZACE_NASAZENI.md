@@ -82,7 +82,7 @@ Nenastavovat veřejně dostupné statické soubory v pracovním úložišti. Tok
 6. Hlavní instance může předat roli zadáním UUID jiné instance. Záložní instance může nouzově převzít roli bez součinnosti původního počítače.
 7. Pokud se lokální a vzdálené údaje liší, klient nabídne lokální JSON zálohu před jejich nahrazením. Automatické slučování odlišných agend není součástí první verze.
 
-Heslo, autentizační token ani klíč se trvale neukládají do prohlížeče. Po obnovení stránky je třeba znovu zadat heslo. URL se ukládá do localStorage, bez aktivního připojení synchronizace neprobíhá.
+Heslo, autentizační token ani klíč se trvale neukládají do prohlížeče. Po obnovení stránky je třeba znovu zadat heslo. URL se ukládá do localStorage. Pokud je URL již uložená, ale heslo nebylo znovu zadáno, agenda zůstane uzamčená proti zápisu, aby nevznikaly lokální změny mimo synchronizaci. Pro návrat do plně lokálního režimu použijte Odpojit. Bez aktivního připojení synchronizace neprobíhá.
 
 Při připojeném režimu hlavní instance před každým zápisem načte aktuální revizi a potvrzuje změny pomocí If-Match. Záložní instance může číst, nikoli běžně zapisovat. Po výpadku spojení nelze změnu potvrdit; klient ponechá poslední dostupnou lokální kopii.
 
@@ -104,3 +104,5 @@ Při připojeném režimu hlavní instance před každým zápisem načte aktuá
     node tests/sync-integration.mjs
 
 GitHub Actions workflow .github/workflows/sync-ci.yml spouští PHP syntax check, WebCrypto testy a HTTP testy včetně dvou izolovaných klientů a nouzového převzetí. Produkční index.html nebyl změněn.
+
+Původní anonymní statistiky jsou ve vývojové verzi vypnuté, dokud uživatel ve Správě dat výslovně nezaškrtne souhlas s jejich odesíláním. Externí XLSX knihovna má pevně ověřovanou SHA-384 integritu (SRI).
