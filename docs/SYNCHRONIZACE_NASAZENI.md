@@ -74,7 +74,7 @@ Nenastavovat veřejně dostupné statické soubory v pracovním úložišti. Tok
 
 ## Nastavení ve webové aplikaci
 
-1. Otevřít index-dev.html z HTTPS originu (pro testování oddělený profil nebo oddělený origin od produkce).
+1. Otevřít index-dev.html z HTTPS originu. Vývojová verze používá vlastní jmenný prostor localStorage (plavenky_dev_*); při prvním spuštění kopíruje případnou dosavadní lokální evidenci bez změny produkčních klíčů. Oddělený testovací origin/profil přesto doporučujeme.
 2. V záložce Správa dat → Synchronizace zadat URL skupiny včetně sync.php/nazev-skupiny a silné společné heslo.
 3. Kliknout na Ověřit a připojit.
 4. Je-li skupina nová, aplikace nabídne potvrzení její inicializace z aktuálních lokálních dat. Heslo pro novou skupinu musí mít alespoň 20 znaků; doporučena je náhodná fráze s vysokou entropií.
