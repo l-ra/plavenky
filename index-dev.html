@@ -1659,6 +1659,15 @@
             const raw = atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4));
             return Uint8Array.from(raw, char => char.charCodeAt(0));
         };
+        const newSyncUuid = () => {
+            if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+            const bytes = crypto.getRandomValues(new Uint8Array(16));
+            bytes[6] = (bytes[6] & 15) | 64;
+            bytes[8] = (bytes[8] & 63) | 128;
+            const hex = Array.from(bytes, v => v.toString(16).padStart(2, '0')).join('');
+            return hex.slice(0,8) + '-' + hex.slice(8,12) + '-' + hex.slice(12,16) + '-' +
+                hex.slice(16,20) + '-' + hex.slice(20);
+        };
         const safeClone = value => JSON.parse(JSON.stringify(value));
         const htmlEscape = value => String(value ?? '').replace(/[&<>"']/g, ch =>
             ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -1708,7 +1717,7 @@
                 DataStore.lastConfirmed = DataStore.snapshot();
                 this.instanceId = localStorage.getItem('plavenky_sync_instance_id');
                 if (!this.instanceId || !/^[a-f0-9-]{36}$/i.test(this.instanceId)) {
-                    this.instanceId = crypto.randomUUID();
+                    this.instanceId = newSyncUuid();
                     localStorage.setItem('plavenky_sync_instance_id', this.instanceId);
                 }
                 const urlInput = document.getElementById('sync-url');
@@ -1858,7 +1867,7 @@
                             salt:toB64(crypto.getRandomValues(new Uint8Array(32)))};
                         this.keys = await this.derive(password, kdf, this.group);
                         const first = Object.assign({
-                            protocolVersion:1,revision:1,epoch:1,snapshotId:crypto.randomUUID(),
+                            protocolVersion:1,revision:1,epoch:1,snapshotId:newSyncUuid(),
                             parentSnapshotId:null,primaryInstanceId:this.instanceId
                         }, DataStore.snapshot());
                         this.validate(first);
@@ -1950,7 +1959,7 @@
                         throw new Error('Vzdálená agenda byla změněna. Načtena nová verze; změnu zopakujte.');
                     }
                     const next = Object.assign({}, this.current, staged, {
-                        revision:this.current.revision+1, snapshotId:crypto.randomUUID(),
+                        revision:this.current.revision+1, snapshotId:newSyncUuid(),
                         parentSnapshotId:this.current.snapshotId
                     });
                     await this.saveState(previous, next);
@@ -2003,7 +2012,7 @@
                     }
                     const next = Object.assign({}, this.current, {
                         revision:this.current.revision + 1,epoch:this.current.epoch + 1,
-                        snapshotId:crypto.randomUUID(),parentSnapshotId:this.current.snapshotId,
+                        snapshotId:newSyncUuid(),parentSnapshotId:this.current.snapshotId,
                         primaryInstanceId:target
                     });
                     await this.saveState(previous, next);
@@ -2045,7 +2054,7 @@
                     if (previous.state.snapshotId !== this.current.snapshotId) throw new Error('Stav se změnil, opakujte akci');
                     const next = Object.assign({}, this.current, {
                         chips:old.chips,employees:old.employees,borrowings:old.borrowings,
-                        revision:this.current.revision+1,snapshotId:crypto.randomUUID(),
+                        revision:this.current.revision+1,snapshotId:newSyncUuid(),
                         parentSnapshotId:this.current.snapshotId
                     });
                     await this.saveState(previous, next);
