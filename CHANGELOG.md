@@ -8,6 +8,7 @@ a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 ## [1.6.0-dev] - rozpracováno
 
 ### Vývojová verze
+- Uložení společného synchronizačního hesla do localStorage po úspěšném připojení; automatické opětovné připojení po spuštění; možnost zapomenout heslo nebo smazat nastavení
 - Volitelná synchronizace do souborového PHP API, skupiny podle URL cesty
 - Symetrické AES-256-GCM, PBKDF2/HKDF, bearer token a serverový hash tokenu
 - Atomické ukládání přes ETag/If-Match, historie šifrovaných verzí
