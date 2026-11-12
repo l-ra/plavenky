@@ -1665,6 +1665,7 @@
         const safeNumber = value => Number.isSafeInteger(Number(value)) ? Number(value) : 0;
 
         const DataStore = {
+            lastConfirmed: null,
             snapshot: () => safeClone({chips, employees, borrowings}),
             persist() {
                 Storage.set('chips', chips);
@@ -1676,6 +1677,7 @@
                 employees = safeClone(data.employees);
                 borrowings = safeClone(data.borrowings);
                 this.persist();
+                this.lastConfirmed = this.snapshot();
                 this.render();
             },
             render() {
@@ -1685,7 +1687,14 @@
             },
             async commit() {
                 if (!SyncManager.active) {
+                    if (localStorage.getItem('plavenky_sync_url')) {
+                        // Prevent accidental forks after reload, while URL is known but password is not.
+                        if (this.lastConfirmed) this.apply(this.lastConfirmed);
+                        await CustomDialog.alert('Synchronizovaná agenda je uzamčená. Připojte ji heslem, nebo zvolte Odpojit pro lokální režim.');
+                        return false;
+                    }
                     this.persist();
+                    this.lastConfirmed = this.snapshot();
                     return true;
                 }
                 return SyncManager.commitData();
@@ -1696,6 +1705,7 @@
             active: false, busy: false, current: null, etag: null, keys: null,
             url: '', group: '', instanceId: '', timer: null, statusText: 'Lokální režim',
             init() {
+                DataStore.lastConfirmed = DataStore.snapshot();
                 this.instanceId = localStorage.getItem('plavenky_sync_instance_id');
                 if (!this.instanceId || !/^[a-f0-9-]{36}$/i.test(this.instanceId)) {
                     this.instanceId = crypto.randomUUID();
@@ -1715,7 +1725,7 @@
                 document.addEventListener('visibilitychange', () => {
                     if (!document.hidden && this.active) this.refresh(false);
                 });
-                this.statusText = urlInput.value ? 'Heslo není zadáno – synchronizace vypnutá' : 'Lokální režim';
+                this.statusText = urlInput.value ? 'Heslo není zadáno – lokální úpravy uzamčeny (odpojením přejdete na lokální režim)' : 'Lokální režim';
                 this.ui();
             },
             normalizeUrl(value) {
