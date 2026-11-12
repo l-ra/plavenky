@@ -13,7 +13,7 @@ Rozšířit lokální webovou aplikaci Evidence plaveckých čipů o volitelnou 
 - Backend **nemá aplikační znalost** čipů, zaměstnanců, výpůjček ani hlavní instance. Provádí pouze ověřování společného přístupového tajemství, validaci požadavků, bezpečnou souborovou manipulaci a atomický podmíněný zápis.
 - Skupiny instancí jsou oddělené URL cestou a mají vlastní pracovní složku, salt, ověřovací údaj a šifrovaná data.
 - Klient zajišťuje šifrování/dešifrování, změny dat, pravidla synchronizace, role hlavní/záložní instance a předání agendy.
-- Synchronizace se nastavuje v záložce **Správa dat**. Bez nastavené URL nebo bez hesla v aktuální relaci nesmí probíhat.
+- Synchronizace se nastavuje v záložce **Správa dat**. Po úspěšném připojení se URL i heslo trvale uloží do localStorage a při dalším otevření se použijí pro automatické připojení. Bez uložené URL nebo dostupného hesla synchronizace neprobíhá.
 - Pokud data na úložišti neexistují, klient nabízí **inicializaci aktuálními lokálními daty až po potvrzení uživatele**.
 - Záložní instance může převzít agendu bez součinnosti původního počítače.
 - Součástí práce je odstranění XSS nedostatků a bezpečnostní regresní testy.
@@ -62,7 +62,7 @@ Server ukládá pouze `authVerifier = SHA-256(authToken)` v neveřejném souboru
 - Pro každé šifrování vytvořit nový náhodný 96bitový nonce/IV (nesmí se opakovat se stejným klíčem).
 - Ověřovat autentizační tag; v AAD vázat alespoň verzi protokolu, kanonickou identitu skupiny a typ šifrovaného objektu.
 - Veřejná obálka může obsahovat verzi protokolu, použitý algoritmus, IV a ciphertext, nikoliv jména zaměstnanců, identifikátory čipů či obsah výpůjček.
-- Heslo, `K_master`, `K_enc` a `authToken` držet jen v paměti běžící stránky. Nepersistovat je do `localStorage`, IndexedDB ani cookies. Po novém otevření/obnovení stránky vyžadovat heslo znovu.
+- Po úspěšném připojení ukládat **původní uživatelské heslo v čitelné podobě** do `localStorage` pod klíčem `plavenky_sync_password`; URL pod `plavenky_sync_url`. `K_master`, `K_enc` a `authToken` nadále držet pouze v paměti běžící stránky a nepersistovat je samostatně. Při znovuotevření použít uložené heslo k nové derivaci klíčů a automatickému připojení. Při odpojení vymazat obě uložené položky; přidat možnost zapomenout pouze heslo.
 - Chybné heslo nebo neplatný ciphertext nesmí přepsat lokální data.
 
 ## 4. PHP server a cesty skupin
@@ -200,7 +200,7 @@ V záložce **Správa dat** vytvořit sekci „Synchronizace“:
 
 ### 5.1 Vypnutý stav
 
-Bez URL nebo bez hesla zadaného v aktuální relaci nesmí běžet žádná automatická synchronizace. Aplikace funguje jako dosud lokálně. URL je možné trvale uložit, ale **heslo, klíče a autentizační token nikoli**. Je-li URL nastavena a heslo zrovna chybí, jasně ukázat „Synchronizace pozastavena – zadejte heslo“; neslibovat, že lokálně provedené změny byly odeslány.
+Bez URL nebo bez uloženého/zadaného hesla synchronizace neprobíhá. Po úspěšném připojení se URL a **heslo** persistují v localStorage a klient se při příštím spuštění automaticky připojí. Pokud existuje URL, ale heslo chybí, zůstanou lokální úpravy blokované až do opětovného připojení nebo explicitního odpojení. Automatické připojení nesmí bez uživatelské interakce založit prázdné úložiště ani nahradit konfliktní lokální data. V UI jasně uvést, že se heslo ukládá nešifrovaně na zařízení, a poskytnout tlačítko pro jeho smazání.
 
 ### 5.2 Připojení a ověření
 
@@ -310,5 +310,6 @@ Důvod: XSS v aplikaci s E2EE může zneužít již dešifrovaná data a získat
 - Server nebo kompromitovaná infrastruktura může ciphertext smazat, zadržet nebo vrátit starší verzi; E2EE negarantuje dostupnost ani absolutní ochranu před rollbackem. Zálohovat nezávisle.
 - Předvídatelnou prázdnou URL může obsadit útočník při prvním bootstrapu. Použít těžko uhádnutelnou skupinovou cestu nebo infrastrukturní omezení inicializace.
 - Kompromitace klientského JavaScriptu/XSS může odhalit heslo, autentizační token nebo dešifrovaná data.
+- **Změna proti původnímu zadání (12. 11. 2026):** Uložené heslo v localStorage je čitelné pro skripty téhož originu i pro osoby s přístupem k profilu prohlížeče. Jde o přijaté bezpečnostní riziko výměnou za automatické připojování. Nejde o šifrování hesla v klidu; nesmí být deklarováno jako hardwarové zabezpečení.
 - Doména, název skupiny, salt, objem a čas komunikace jsou provozní metadata a nemusí být šifrována.
 - Atomické `flock()` a `rename()` musí na cílovém filesystemu skutečně fungovat. Bez nich nelze zaručit správné souběžné commity.
