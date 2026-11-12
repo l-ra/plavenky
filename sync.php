@@ -131,8 +131,15 @@ function initialized(string $dir): bool {
            is_file($dir . '/current.enc');
 }
 function stateOf(string $dir): array {
-    if (!is_dir($dir)) return ['configured' => nearestWritableParent($dir), 'initialized' => false,
-        'accessible' => nearestWritableParent($dir), 'writable' => nearestWritableParent($dir), 'errors' => []];
+    if (!is_dir($dir)) {
+        $canCreate = nearestWritableParent($dir);
+        return ['configured'=>$canCreate, 'initialized'=>false,
+            'accessible'=>$canCreate, 'writable'=>$canCreate,
+            'errors'=>$canCreate ? [] : [[
+                'code'=>'STORAGE_NOT_WRITABLE',
+                'message'=>'The target storage parent is missing or not writable'
+            ]]];
+    }
     checkNoSymlinks($dir);
     $access = is_readable($dir);
     $write = is_writable($dir);
@@ -149,6 +156,15 @@ function stateOf(string $dir): array {
         $cfg = json_decode((string) @file_get_contents($dir . '/config.json'), true);
         if (!is_array($cfg) || ($cfg['protocolVersion'] ?? null) !== 1 ||
             !is_array($cfg['kdf'] ?? null)) $errors[] = ['code'=>'CONFIG_CORRUPTED','message'=>'Invalid configuration'];
+        $auth = json_decode((string) @file_get_contents($dir . '/auth.verifier.json'), true);
+        if (!is_array($auth) || !is_string($auth['authVerifier'] ?? null) ||
+            !preg_match('/^[a-f0-9]{64}$/D', $auth['authVerifier'])) {
+            $errors[] = ['code'=>'CONFIG_CORRUPTED','message'=>'Invalid authentication configuration'];
+        }
+        $encrypted = @file_get_contents($dir . '/current.enc');
+        if (!is_string($encrypted) || !is_array(json_decode($encrypted, true))) {
+            $errors[] = ['code'=>'CONFIG_CORRUPTED','message'=>'Invalid current snapshot'];
+        }
     }
     return ['configured'=>$access && $write && !$partial && !$errors,
         'initialized'=>$complete && !$errors, 'accessible'=>$access, 'writable'=>$write,'errors'=>$errors];
