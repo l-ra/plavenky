@@ -1382,7 +1382,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     
     <!-- Load marked.js library for Markdown support -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Markdown rendered as plain text to prevent HTML/script injection. -->
 
     <script>
         // Custom Dialog System
@@ -2357,9 +2357,9 @@
                     <tbody>
                         ${chips.map(chip => `
                             <tr>
-                                <td>${chip.identifier}</td>
+                                <td>${htmlEscape(chip.identifier)}</td>
                                 <td>
-                                    <button class="btn btn-danger btn-small" onclick="deleteChip(${chip.id})">Smazat</button>
+                                    <button class="btn btn-danger btn-small" onclick="deleteChip(${safeNumber(chip.id)})">Smazat</button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -2507,13 +2507,13 @@
                     <tbody>
                         ${employees.map(emp => `
                             <tr>
-                                <td>${emp.name}</td>
-                                <td>${emp.employeeNumber}</td>
-                                <td>${emp.department || '-'}</td>
+                                <td>${htmlEscape(emp.name)}</td>
+                                <td>${htmlEscape(emp.employeeNumber)}</td>
+                                <td>${htmlEscape(emp.department || '-')}</td>
                                 <td>
                                     <div class="actions">
-                                        <button class="btn btn-primary btn-small" onclick="editEmployee(${emp.id})">Upravit</button>
-                                        <button class="btn btn-danger btn-small" onclick="deleteEmployee(${emp.id})">Smazat</button>
+                                        <button class="btn btn-primary btn-small" onclick="editEmployee(${safeNumber(emp.id)})">Upravit</button>
+                                        <button class="btn btn-danger btn-small" onclick="deleteEmployee(${safeNumber(emp.id)})">Smazat</button>
                                     </div>
                                 </td>
                             </tr>
@@ -2701,7 +2701,7 @@
                 }
                 
                 suggestionsEl.innerHTML = items.map(item => 
-                    `<div class="autocomplete-suggestion" data-id="${item.id}">${item.display}</div>`
+                    `<div class="autocomplete-suggestion" data-id="${item.id}">${htmlEscape(item.display)}</div>`
                 ).join('');
                 suggestionsEl.style.display = 'block';
                 
@@ -2833,8 +2833,8 @@
                 }
                 
                 chipSuggestionsEl.innerHTML = filtered.map(chip => 
-                    `<div class="autocomplete-suggestion ${chip.available ? '' : 'unavailable'}" data-id="${chip.id}">
-                        ${chip.available ? '' : '⚠️ '}${chip.identifier}
+                    `<div class="autocomplete-suggestion ${chip.available ? '' : 'unavailable'}" data-id="${safeNumber(chip.id)}">
+                        ${chip.available ? '' : '⚠️ '}${htmlEscape(chip.identifier)}
                     </div>`
                 ).join('');
                 chipSuggestionsEl.style.display = 'block';
@@ -2960,8 +2960,8 @@
             const tag = document.createElement('div');
             tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
             tag.innerHTML = `
-                ${!available ? '⚠️ ' : ''}${chip.identifier}
-                <button type="button" onclick="removeChipFromNewBorrowingSelection(${chipId}, this)">&times;</button>
+                ${!available ? '⚠️ ' : ''}${htmlEscape(chip.identifier)}
+                <button type="button" onclick="removeChipFromNewBorrowingSelection(${safeNumber(chipId)}, this)">&times;</button>
             `;
             container.appendChild(tag);
             
@@ -3001,8 +3001,8 @@
                 const tag = document.createElement('div');
                 tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
                 tag.innerHTML = `
-                    ${!available ? '⚠️ ' : ''}${chip.identifier}
-                    <button type="button" onclick="removeChipFromNewBorrowingSelection(${chipId}, this)">&times;</button>
+                    ${!available ? '⚠️ ' : ''}${htmlEscape(chip.identifier)}
+                    <button type="button" onclick="removeChipFromNewBorrowingSelection(${safeNumber(chipId)}, this)">&times;</button>
                 `;
                 container.appendChild(tag);
             });
@@ -3294,24 +3294,24 @@
                                 const conflictIcon = hasConflict ? '⚠️ ' : '';
                                 
                                 // Create a unique identifier for this chip instance
-                                const chipKey = `chip-${chipId}-borrowing-${b.id}`;
-                                const conflictBorrowings = hasConflict ? chipConflicts[chipId].join(',') : '';
+                                const chipKey = `chip-${safeNumber(chipId)}-borrowing-${safeNumber(b.id)}`;
+                                const conflictBorrowings = hasConflict ? chipConflicts[chipId].map(safeNumber).join(',') : '';
                                 
                                 return `<span class="chip-tag${conflictClass}" 
-                                             data-chip-id="${chipId}" 
-                                             data-borrowing-id="${b.id}"
+                                             data-chip-id="${safeNumber(chipId)}" 
+                                             data-borrowing-id="${safeNumber(b.id)}"
                                              data-conflict-borrowings="${conflictBorrowings}"
                                              data-chip-key="${chipKey}"
-                                             onmouseenter="highlightConflictingChips(${chipId}, ${b.id}, '${conflictBorrowings}')"
-                                             onmouseleave="clearConflictHighlight()">${conflictIcon}${chip.identifier}</span>`;
+                                             onmouseenter="highlightConflictingChips(${safeNumber(chipId)}, ${safeNumber(b.id)}, '${conflictBorrowings}')"
+                                             onmouseleave="clearConflictHighlight()">${conflictIcon}${htmlEscape(chip.identifier)}</span>`;
                             }).join(' ');
                             
                             const isActive = !b.endDate;
                             
                             return `
                                 <tr>
-                                    <td>${employee ? `${employee.name} (${employee.employeeNumber})` : 'N/A'}</td>
-                                    <td>${employee && employee.department ? employee.department : '-'}</td>
+                                    <td>${employee ? htmlEscape(employee.name + ' (' + employee.employeeNumber + ')') : 'N/A'}</td>
+                                    <td>${htmlEscape(employee && employee.department ? employee.department : '-')}</td>
                                     <td class="chips-cell">${chipTags}</td>
                                     <td class="date-cell">${formatDate(b.startDate)}</td>
                                     <td class="date-cell">${b.endDate ? formatDate(b.endDate) : '-'}</td>
@@ -3322,9 +3322,9 @@
                                     </td>
                                     <td>
                                         <div class="actions">
-                                            ${isActive ? `<button class="btn btn-success btn-small" onclick="endBorrowing(${b.id})">Ukončit</button>` : ''}
-                                            <button class="btn btn-primary btn-small" onclick="editBorrowing(${b.id})">Upravit</button>
-                                            <button class="btn btn-danger btn-small" onclick="deleteBorrowing(${b.id})">Smazat</button>
+                                            ${isActive ? `<button class="btn btn-success btn-small" onclick="endBorrowing(${safeNumber(b.id)})">Ukončit</button>` : ''}
+                                            <button class="btn btn-primary btn-small" onclick="editBorrowing(${safeNumber(b.id)})">Upravit</button>
+                                            <button class="btn btn-danger btn-small" onclick="deleteBorrowing(${safeNumber(b.id)})">Smazat</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -3351,7 +3351,7 @@
             const conflictBorrowings = conflictBorrowingsStr.split(',').map(id => parseInt(id));
             
             // Highlight all instances of this chip in conflicting borrowings
-            document.querySelectorAll(`[data-chip-id="${chipId}"]`).forEach(el => {
+            document.querySelectorAll(`[data-chip-id="${safeNumber(chipId)}"]`).forEach(el => {
                 const borrowingId = parseInt(el.getAttribute('data-borrowing-id'));
                 if (conflictBorrowings.includes(borrowingId)) {
                     el.classList.add('conflict-highlight');
@@ -3544,8 +3544,8 @@
                     const tag = document.createElement('div');
                     tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
                     tag.innerHTML = `
-                        ${!available ? '⚠️ ' : ''}${chip.identifier}
-                        <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
+                        ${!available ? '⚠️ ' : ''}${htmlEscape(chip.identifier)}
+                        <button type="button" onclick="removeChipFromSelection(${safeNumber(chipId)}, this)">&times;</button>
                     `;
                     container.appendChild(tag);
                 }
@@ -3608,8 +3608,8 @@
                 }
                 
                 chipSuggestionsEl.innerHTML = filtered.map(chip => 
-                    `<div class="autocomplete-suggestion ${chip.available ? '' : 'unavailable'}" data-id="${chip.id}">
-                        ${chip.available ? '' : '⚠️ '}${chip.identifier}
+                    `<div class="autocomplete-suggestion ${chip.available ? '' : 'unavailable'}" data-id="${safeNumber(chip.id)}">
+                        ${chip.available ? '' : '⚠️ '}${htmlEscape(chip.identifier)}
                     </div>`
                 ).join('');
                 chipSuggestionsEl.style.display = 'block';
@@ -3640,8 +3640,8 @@
             const tag = document.createElement('div');
             tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
             tag.innerHTML = `
-                ${!available ? '⚠️ ' : ''}${chip.identifier}
-                <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
+                ${!available ? '⚠️ ' : ''}${htmlEscape(chip.identifier)}
+                <button type="button" onclick="removeChipFromSelection(${safeNumber(chipId)}, this)">&times;</button>
             `;
             container.appendChild(tag);
             
@@ -3677,8 +3677,8 @@
                 const tag = document.createElement('div');
                 tag.className = available ? 'chip-tag' : 'chip-tag unavailable';
                 tag.innerHTML = `
-                    ${!available ? '⚠️ ' : ''}${chip.identifier}
-                    <button type="button" onclick="removeChipFromSelection(${chipId}, this)">&times;</button>
+                    ${!available ? '⚠️ ' : ''}${htmlEscape(chip.identifier)}
+                    <button type="button" onclick="removeChipFromSelection(${safeNumber(chipId)}, this)">&times;</button>
                 `;
                 container.appendChild(tag);
             });
@@ -4406,12 +4406,6 @@
             Analytics.track('help_viewed');
             const container = document.getElementById('help-content');
             
-            // Configure marked options
-            marked.setOptions({
-                breaks: true,
-                gfm: true
-            });
-            
             try {
                 // Try to fetch README.md from file
                 const response = await fetch('README.md');
@@ -4421,7 +4415,8 @@
                 
                 const markdown = await response.text();
                 const html = marked.parse(markdown);
-                container.innerHTML = html;
+                container.textContent = markdown;
+                container.style.whiteSpace = 'pre-wrap';
                 helpContentLoaded = true;
             } catch (error) {
                 console.log('Načítání README.md selhalo (běží z file://)');
