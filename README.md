@@ -200,7 +200,7 @@ Vývojový soubor `index-dev.html` ve verzi `1.6.0-dev` umožňuje synchronizova
 - Data se šifrují v prohlížeči (AES-256-GCM), klíč je odvozen ze společného hesla.
 - Ze stejného hesla vzniká oddělený token pro serverovou autentizaci; server uchovává jen jeho hash.
 - Skupiny jsou odděleny cestou URL. Pouze jedna instance má podle klientského stavu hlavní roli; záložní instance může samostatně převzít správu.
-- Synchronizace se nastavuje ve **Správě dat**. Bez URL a odemčené relace zůstává vypnutá.
+- Synchronizace se nastavuje ve **Správě dat**. Po návratu do aplikace je uložená synchronizovaná agenda bez nového zadání hesla pouze pro čtení; pro čistě lokální režim použijte **Odpojit**.
 - Při výpadku serveru nejsou synchronizované zápisy potvrzovány.
 
 **Produkční `index.html` verze 1.5.0 zatím synchronizaci neobsahuje.** U vývojové verze používejte oddělený origin/profil od produkce.
