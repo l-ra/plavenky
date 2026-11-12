@@ -2073,7 +2073,7 @@
                 document.getElementById('sync-history').disabled = !primary || this.busy;
                 document.getElementById('sync-connect').disabled = this.busy;
                 // Disable editing controls on backups; commit validation remains authoritative.
-                const readonly = this.active && !primary;
+                const readonly = (this.active && !primary) || (!this.active && !!localStorage.getItem('plavenky_sync_url'));
                 const selectors = [
                     '#add-chip-form button[type="submit"]',
                     '#add-employee-form button[type="submit"]',
