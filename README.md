@@ -192,3 +192,17 @@ const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
 ```
 
 Odkaz na repozitář je zobrazen v patičce aplikace.
+
+## Volitelná šifrovaná synchronizace (vývojová verze)
+
+Vývojový soubor `index-dev.html` ve verzi `1.6.0-dev` umožňuje synchronizovat evidenci mezi více prohlížeči přes vlastní PHP souborový server (`sync.php`).
+
+- Data se šifrují v prohlížeči (AES-256-GCM), klíč je odvozen ze společného hesla.
+- Ze stejného hesla vzniká oddělený token pro serverovou autentizaci; server uchovává jen jeho hash.
+- Skupiny jsou odděleny cestou URL. Pouze jedna instance má podle klientského stavu hlavní roli; záložní instance může samostatně převzít správu.
+- Synchronizace se nastavuje ve **Správě dat**. Bez URL a odemčené relace zůstává vypnutá.
+- Při výpadku serveru nejsou synchronizované zápisy potvrzovány.
+
+**Produkční `index.html` verze 1.5.0 zatím synchronizaci neobsahuje.** U vývojové verze používejte oddělený origin/profil od produkce.
+
+Podrobný [návrh implementace](docs/SYNCHRONIZACE_NAVRH_IMPLEMENTACE.md) a [návod k nasazení](docs/SYNCHRONIZACE_NASAZENI.md) obsahují konfiguraci PHP, příklady HTTP API, bezpečnostní omezení a testy.
