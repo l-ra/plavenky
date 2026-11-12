@@ -60,6 +60,11 @@ function canonicalGroup(): array {
     $domain = strtolower(envValue('PLAVENKY_SYNC_DOMAIN', (string) ($_SERVER['SERVER_NAME'] ?? '')));
     if (strlen($domain) > 253 || !preg_match('/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/D', $domain) ||
         str_contains($domain, '..')) fail(400, 'INVALID_DOMAIN', 'Invalid configured domain');
+    // Check the raw path before a webserver or PHP normalizes/decode percent escapes.
+    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    if (!is_string($requestPath) || str_contains($requestPath, '%')) {
+        fail(400, 'INVALID_PATH', 'Encoded group paths are not allowed');
+    }
     $raw = $_SERVER['PATH_INFO'] ?? '';
     // Some SAPIs (notably PHP's built-in server) omit PATH_INFO.
     if ($raw === '') {
@@ -228,6 +233,11 @@ function initGroup(string $dir): never {
     $parent = dirname($dir);
     ensureDirectory($parent);
     locked($parent . '/.plavenky-init.lock', function() use ($dir, $data, $snapshot) {
+        // An administrator may have pre-created an empty data directory.
+        if (is_dir($dir) && !is_link($dir)) {
+            $entries = array_diff(scandir($dir) ?: [], ['.', '..']);
+            if (!$entries && !@rmdir($dir)) fail(500, 'STORAGE_NOT_WRITABLE', 'Cannot replace empty group directory');
+        }
         if (file_exists($dir)) fail(412, 'ALREADY_INITIALIZED', 'Group already exists');
         $stage = $dir . '.staging-' . bin2hex(random_bytes(12));
         if (!@mkdir($stage, 0700)) fail(500, 'STORAGE_NOT_WRITABLE', 'Cannot initialize storage');
