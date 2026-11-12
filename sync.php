@@ -258,7 +258,7 @@ try {
     checkNoSymlinks($dir);
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     $object = $_GET['object'] ?? null;
-    if (!is_string($object)) fail(400, 'INVALID_OBJECT', 'Invalid object');
+    if ($object !== null && !is_string($object)) fail(400, 'INVALID_OBJECT', 'Invalid object');
     if ($method === 'GET' && $object === null) {
         $status = stateOf($dir);
         $result = ['service'=>'plavenky-sync','configured'=>$status['configured'],
