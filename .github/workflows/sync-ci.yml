@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: XLSX dependency checksum
-        run: curl -fsSL 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js' | openssl dgst -sha384 -binary | openssl base64 -A
+        run: test "$(curl -fsSL 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js' | openssl dgst -sha384 -binary | openssl base64 -A)" = 'OUW9euuUyxyHcAhTqbhI+Iyb8LMssXt/cpz0yXhs9UWG2/R/uaWdakx/4cfww7Vb'
       - name: PHP syntax
         run: php -l sync.php
       - name: Cryptography tests
