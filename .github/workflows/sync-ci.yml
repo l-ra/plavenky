@@ -1,0 +1,22 @@
+name: Validate encrypted synchronization
+on:
+  push:
+    paths:
+      - 'index-dev.html'
+      - 'sync.php'
+      - 'tests/**'
+      - '.github/workflows/sync-ci.yml'
+  pull_request:
+    paths:
+      - 'index-dev.html'
+      - 'sync.php'
+      - 'tests/**'
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: php -l sync.php
+      - name: Integration tests
+        run: node tests/sync-integration.mjs
