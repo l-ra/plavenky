@@ -1517,22 +1517,36 @@
         };
 
         // Data Storage
+        // Development data is independent from the production index.html origin.
+        // On first launch, copy (never move or delete) existing production data.
         const Storage = {
+            prefix: 'plavenky_dev_',
+            init() {
+                if (localStorage.getItem(this.prefix + 'initialized') === '1') return;
+                for (const key of ['chips', 'employees', 'borrowings']) {
+                    if (localStorage.getItem(this.prefix + key) === null) {
+                        const legacy = localStorage.getItem(key);
+                        if (legacy !== null) localStorage.setItem(this.prefix + key, legacy);
+                    }
+                }
+                localStorage.setItem(this.prefix + 'initialized', '1');
+            },
             get(key, defaultValue = []) {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : defaultValue;
+                const data = localStorage.getItem(this.prefix + key);
+                return data === null ? defaultValue : JSON.parse(data);
             },
             set(key, value) {
-                localStorage.setItem(key, JSON.stringify(value));
+                localStorage.setItem(this.prefix + key, JSON.stringify(value));
             }
         };
+        Storage.init();
 
         // Application version
         const APP_VERSION = '1.6.0-dev';
         const GITHUB_REPO = 'https://github.com/l-ra/plavenky';
         const MANAGEMENT_TAB_IDS = new Set(['chips', 'employees', 'data-management']);
-        const BACKUP_PENDING_CHANGES_STORAGE_KEY = 'backup_pending_changes';
-        const EXPORT_DATE_FORMAT_STORAGE_KEY = 'export_borrowings_date_format';
+        const BACKUP_PENDING_CHANGES_STORAGE_KEY = 'plavenky_dev_backup_pending_changes';
+        const EXPORT_DATE_FORMAT_STORAGE_KEY = 'plavenky_dev_export_borrowings_date_format';
         const DEFAULT_EXPORT_DATE_FORMAT = 'DD.MM.YYYY';
         const BACKUP_HIGHLIGHT_THRESHOLD = 3;
         const BACKUP_LEAVE_WARNING = 'V aplikaci máte nezálohované změny. Pokud nechcete odejít bez zálohy, zůstaňte na stránce a stiskněte tlačítko Zálohovat.';
@@ -1555,12 +1569,12 @@
             // Initialize instance ID
             init() {
                 // Get or create instance ID (stored separately from app data)
-                this.instanceId = localStorage.getItem('analytics_instance_id');
+                this.instanceId = localStorage.getItem('plavenky_dev_analytics_instance_id');
                 const isFirstUse = !this.instanceId;
                 
                 if (isFirstUse) {
                     this.instanceId = this.generateUUID();
-                    localStorage.setItem('analytics_instance_id', this.instanceId);
+                    localStorage.setItem('plavenky_dev_analytics_instance_id', this.instanceId);
                     this.track('first_use');
                 }
 
