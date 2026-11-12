@@ -52,7 +52,7 @@ try {
     catch { await sleep(50); }
   }
   assert(running, 'PHP server did not start: ' + logs);
-  const pre = await request(url); assert.equal(pre.status,200);
+  const pre = await request(url); assert.equal(pre.status,200,await pre.clone().text());
   let check = await pre.json();
   assert.equal(check.configured,true);
   assert.equal(check.initialized,false);
