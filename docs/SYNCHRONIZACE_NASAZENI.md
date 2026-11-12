@@ -75,14 +75,16 @@ Nenastavovat veřejně dostupné statické soubory v pracovním úložišti. Tok
 ## Nastavení ve webové aplikaci
 
 1. Otevřít index-dev.html z HTTPS originu. Vývojová verze používá vlastní jmenný prostor localStorage (plavenky_dev_*); při prvním spuštění kopíruje případnou dosavadní lokální evidenci bez změny produkčních klíčů. Oddělený testovací origin/profil přesto doporučujeme.
-2. V záložce Správa dat → Synchronizace zadat URL skupiny včetně sync.php/nazev-skupiny a silné společné heslo.
+2. V záložce Správa dat → Synchronizace zadat URL skupiny včetně sync.php/nazev-skupiny a silné společné heslo. Po **úspěšném připojení** se URL i heslo uloží do localStorage daného originu prohlížeče. Heslo se ukládá v čitelné podobě pod klíčem `plavenky_sync_password`.
 3. Kliknout na Ověřit a připojit.
 4. Je-li skupina nová, aplikace nabídne potvrzení její inicializace z aktuálních lokálních dat. Heslo pro novou skupinu musí mít alespoň 20 znaků; doporučena je náhodná fráze s vysokou entropií.
 5. Další uživatelé zadají stejnou URL a heslo; získají záložní instanci a dešifrovanou kopii agendy.
 6. Hlavní instance může předat roli zadáním UUID jiné instance. Záložní instance může nouzově převzít roli bez součinnosti původního počítače.
 7. Pokud se lokální a vzdálené údaje liší, klient nabídne lokální JSON zálohu před jejich nahrazením. Automatické slučování odlišných agend není součástí první verze.
 
-Heslo, autentizační token ani klíč se trvale neukládají do prohlížeče. Po obnovení stránky je třeba znovu zadat heslo. URL se ukládá do localStorage. Pokud je URL již uložená, ale heslo nebylo znovu zadáno, agenda zůstane uzamčená proti zápisu, aby nevznikaly lokální změny mimo synchronizaci. Pro návrat do plně lokálního režimu použijte Odpojit. Bez aktivního připojení synchronizace neprobíhá.
+**Automatické připojení:** Po dalším otevření aplikace klient načte URL (`plavenky_sync_url`) i heslo (`plavenky_sync_password`) z `localStorage`, odvodí znovu šifrovací klíč i autentizační token a bez dalšího zadávání hesla se pokusí připojit. Heslo se znovu nevyplňuje do viditelného formuláře. Pokud připojení selže (síť, chybné heslo, nekompatibilita), aplikace zobrazí stav bez opakovaného vyskakovacího dialogu; lokální změny zůstávají blokované. Automatické připojení **nikdy samo neinicializuje prázdnou skupinu, nepřepíše rozdílná lokální data ani nespustí import**. Tyto kroky vyžadují ruční potvrzení.
+
+**Správa uloženého hesla:** Tlačítko „Zapomenout uložené heslo“ odstraní pouze `plavenky_sync_password`, okamžitě ukončí aktivní synchronizační relaci a ponechá URL pro nové ruční připojení. Tlačítko „Odpojit a smazat nastavení“ odstraní uložené URL i heslo a přepne aplikaci do čistě lokálního režimu. Pro změnu hesla v prohlížeči stačí zadat nové heslo a znovu se úspěšně připojit; **tím se nemění heslo již inicializované vzdálené skupiny**, která vyžaduje odpovídající původní heslo a samostatný postup přešifrování.
 
 Při připojeném režimu hlavní instance před každým zápisem načte aktuální revizi a potvrzuje změny pomocí If-Match. Záložní instance může číst, nikoli běžně zapisovat. Po výpadku spojení nelze změnu potvrdit; klient ponechá poslední dostupnou lokální kopii.
 
@@ -91,6 +93,7 @@ Při připojeném režimu hlavní instance před každým zápisem načte aktuá
 - Server zná hash bearer tokenu, nikdy šifrovací klíč ani plaintext.
 - Skupiny mají oddělenou cestu, salt a heslo.
 - Sdílené heslo není vazbou na fyzické zařízení; odvolání jednotlivé osoby vyžaduje výměnu hesla a přešifrování dat.
+- **Nové riziko:** `plavenky_sync_password` je uložené v `localStorage` jako čitelný řetězec, bez šifrování v klidu. Je dostupné JavaScriptu běžícímu na stejném originu, uživatelům či škodlivému softwaru s přístupem k profilu prohlížeče, může zůstat v zálohách profilu a přetrvá reload i restart. Nezapínat na sdílených/nedůvěryhodných počítačích. Je nutné chránit origin, CSP a zařízení; samotné E2EE nezabrání úniku uloženého hesla.
 - PHP neověřuje, která instance je hlavní. Neautorizovaný nebo upravený klient, který zná heslo, může vytvořit vlastní snapshot; atomické ETag řeší souběhy, ne individuální oprávnění.
 - Klientský JavaScript je součástí důvěryhodného bezpečnostního perimetru. XSS, kompromitace originu nebo externí knihovny mohou zpřístupnit plaintext.
 - Pouhé šifrování neřeší dostupnost, výmaz dat ani záměrné vracení starých verzí serverem; vést nezávislé zálohy pracovního adresáře a chránit je.
