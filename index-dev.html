@@ -1646,7 +1646,14 @@
         // Password, derived keys and bearer token are held in memory only.
         const syncEncoder = new TextEncoder();
         const syncDecoder = new TextDecoder();
-        const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const toB64 = bytes => {
+            const array = new Uint8Array(bytes);
+            let binary = '';
+            for (let i = 0; i < array.length; i += 32768) {
+                binary += String.fromCharCode(...array.subarray(i, i + 32768));
+            }
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        };
         const fromB64 = value => {
             if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('Neplatné Base64url');
             const raw = atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4));
@@ -1858,7 +1865,10 @@
                     const isDifferent = JSON.stringify(local) !== JSON.stringify(distant);
                     if (isDifferent && (local.chips.length || local.employees.length || local.borrowings.length)) {
                         if (!await CustomDialog.confirm('Lokální data se liší od vzdálené agendy. ' +
-                            'Před jejich nahrazením se stáhne místní JSON záloha. Pokračovat?')) return;
+                            'Před jejich nahrazením se stáhne místní JSON záloha. Pokračovat?')) {
+                            this.keys = null;
+                            return;
+                        }
                         this.downloadBackup(local);
                     }
                     this.current = remote.state;
