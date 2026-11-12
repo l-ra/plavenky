@@ -1165,6 +1165,9 @@
                     <button class="btn btn-danger" type="button" id="sync-disconnect">Odpojit</button>
                 </div>
                 <p id="sync-status" role="status" aria-live="polite" style="font-size:14px;"></p>
+                <label style="display:block;margin-top:10px;font-size:13px;">
+                    <input type="checkbox" id="analytics-optin"> Povolit zasílání agregovaných statistik používání aplikace (vypnuto ve výchozím stavu)
+                </label>
                 <p style="color:var(--text-gray);font-size:12px;">Při ztrátě spojení nejsou synchronizované zápisy potvrzovány. Sdílené heslo umožňuje každému držiteli přístup i převzetí hlavní role.</p>
             </div>
 
@@ -1590,6 +1593,10 @@
 
             // Load configuration
             async loadConfig() {
+                if (localStorage.getItem('plavenky_analytics_opt_in') !== '1') {
+                    this.enabled = false;
+                    return;
+                }
                 try {
                     const response = await fetch('config.json');
                     if (response.ok) {
@@ -1715,6 +1722,13 @@
             url: '', group: '', instanceId: '', timer: null, statusText: 'Lokální režim',
             init() {
                 DataStore.lastConfirmed = DataStore.snapshot();
+                const analyticsOptIn = document.getElementById('analytics-optin');
+                analyticsOptIn.checked = localStorage.getItem('plavenky_analytics_opt_in') === '1';
+                analyticsOptIn.addEventListener('change', () => {
+                    localStorage.setItem('plavenky_analytics_opt_in', analyticsOptIn.checked ? '1' : '0');
+                    if (analyticsOptIn.checked) Analytics.loadConfig();
+                    else Analytics.enabled = false;
+                });
                 this.instanceId = localStorage.getItem('plavenky_sync_instance_id');
                 if (!this.instanceId || !/^[a-f0-9-]{36}$/i.test(this.instanceId)) {
                     this.instanceId = newSyncUuid();
