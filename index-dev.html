@@ -2215,7 +2215,7 @@
 
         function initializeBeforeUnloadProtection() {
             window.addEventListener('beforeunload', (event) => {
-                if (!hasPendingBackupChanges()) {
+                if (!hasPendingBackupChanges() && !(SyncManager.active && SyncManager.busy)) {
                     return;
                 }
 
