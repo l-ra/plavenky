@@ -2077,6 +2077,7 @@
         }
 
         function registerDataChange(changeCount = 1) {
+            if (SyncManager.active) return; // Changes are already committed remotely.
             ensureBackupTrackingInitialized();
             const normalizedChangeCount = Number.isFinite(changeCount) && changeCount > 0
                 ? Math.floor(changeCount)
@@ -2317,7 +2318,7 @@
                 };
                 
                 chips.push(chip);
-                Storage.set('chips', chips);
+                if (!await DataStore.commit()) return;
                 registerDataChange();
                 Analytics.track('chip_added');
                 form.reset();
@@ -2380,7 +2381,7 @@
             }
             
             chips = chips.filter(c => c.id !== id);
-            Storage.set('chips', chips);
+            if (!await DataStore.commit()) return;
             registerDataChange();
             Analytics.track('chip_deleted');
             renderChips();
@@ -2411,7 +2412,7 @@
                         }
                     });
                     
-                    Storage.set('chips', chips);
+                    if (!await DataStore.commit()) return;
                     if (imported > 0) {
                         registerDataChange(imported);
                     }
@@ -2465,7 +2466,7 @@
                 };
                 
                 employees.push(employee);
-                Storage.set('employees', employees);
+                if (!await DataStore.commit()) return;
                 registerDataChange();
                 Analytics.track('employee_added');
                 form.reset();
@@ -2535,7 +2536,7 @@
             }
             
             employees = employees.filter(e => e.id !== id);
-            Storage.set('employees', employees);
+            if (!await DataStore.commit()) return;
             registerDataChange();
             Analytics.track('employee_deleted');
             renderEmployees();
@@ -2588,7 +2589,7 @@
                         department: department
                     };
                     
-                    Storage.set('employees', employees);
+                    if (!await DataStore.commit()) return;
                     if (hasChanged) {
                         registerDataChange();
                         Analytics.track('employee_updated');
@@ -2631,7 +2632,7 @@
                         }
                     });
                     
-                    Storage.set('employees', employees);
+                    if (!await DataStore.commit()) return;
                     if (imported > 0) {
                         registerDataChange(imported);
                     }
@@ -2924,7 +2925,7 @@
                 };
                 
                 borrowings.push(borrowing);
-                Storage.set('borrowings', borrowings);
+                if (!await DataStore.commit()) return;
                 registerDataChange();
                 Analytics.track('borrowing_created', { chipsCount: newBorrowingSelectedChipIds.length });
                 
@@ -3368,7 +3369,7 @@
             if (!await CustomDialog.confirm('Opravdu chcete smazat tuto výpůjčku?')) return;
             
             borrowings = borrowings.filter(b => b.id !== id);
-            Storage.set('borrowings', borrowings);
+            if (!await DataStore.commit()) return;
             registerDataChange();
             renderBorrowings();
         }
@@ -3478,7 +3479,7 @@
                         imported++;
                     });
                     
-                    Storage.set('borrowings', borrowings);
+                    if (!await DataStore.commit()) return;
                     if (imported > 0) {
                         registerDataChange(imported);
                     }
@@ -3508,7 +3509,7 @@
             const today = new Date();
             borrowing.endDate = today.toISOString().split('T')[0];
             
-            Storage.set('borrowings', borrowings);
+            if (!await DataStore.commit()) return;
             registerDataChange();
             Analytics.track('borrowing_ended');
             renderBorrowings();
@@ -3755,7 +3756,7 @@
                     endDate: endDate
                 };
                 
-                Storage.set('borrowings', borrowings);
+                if (!await DataStore.commit()) return;
                 if (hasChanged) {
                     registerDataChange();
                     Analytics.track('borrowing_updated');
@@ -4133,7 +4134,7 @@
                 return !(bStart <= monthEnd && bEnd >= monthStart);
             });
             
-            Storage.set('borrowings', borrowings);
+            if (!await DataStore.commit()) return;
             if (count > 0) {
                 registerDataChange(count);
             }
@@ -4205,9 +4206,7 @@
                     borrowings = importedData.borrowings || [];
                     
                     // Save to localStorage
-                    Storage.set('chips', chips);
-                    Storage.set('employees', employees);
-                    Storage.set('borrowings', borrowings);
+                    if (!await DataStore.commit()) return;
                     
                     // Refresh all displays
                     renderChips();
@@ -4351,9 +4350,7 @@
                     borrowings = importedBorrowings;
                     
                     // Save to localStorage
-                    Storage.set('chips', chips);
-                    Storage.set('employees', employees);
-                    Storage.set('borrowings', borrowings);
+                    if (!await DataStore.commit()) return;
                     
                     // Refresh all displays
                     renderChips();
@@ -4387,9 +4384,7 @@
             borrowings = [];
             
             // Clear localStorage
-            Storage.set('chips', []);
-            Storage.set('employees', []);
-            Storage.set('borrowings', []);
+            if (!await DataStore.commit()) return;
             
             // Refresh all displays
             renderChips();
