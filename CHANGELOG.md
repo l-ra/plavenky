@@ -5,6 +5,18 @@ Všechny významné změny v projektu Evidence plaveckých čipů budou dokument
 Formát vychází z [Keep a Changelog](https://keepachangelog.com/cs/1.0.0/)
 a projekt se řídí [Semantic Versioning](https://semver.org/lang/cs/).
 
+## [1.6.0-dev] - rozpracováno
+
+### Vývojová verze
+- Volitelná synchronizace do souborového PHP API, skupiny podle URL cesty
+- Symetrické AES-256-GCM, PBKDF2/HKDF, bearer token a serverový hash tokenu
+- Atomické ukládání přes ETag/If-Match, historie šifrovaných verzí
+- Hlavní/záložní instance, nouzové převzetí, nastavení ve Správě dat
+- Sjednocené ukládání datových kolekcí a opravy HTML injekcí/XSS
+- Integrační a kryptografické testy v GitHub Actions
+
+Produkční index.html zůstává na verzi 1.5.0.
+
 ## [1.5.0] - 2026-06-07
 
 ### Přidáno
