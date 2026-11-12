@@ -15,6 +15,10 @@ const html = readFileSync('index-dev.html', 'utf8');
 const inline = html.match(/<script>\s*([\s\S]*?)<\/script>/);
 assert(inline, 'Inline JS not found');
 new Script(inline[1], {filename:'index-dev-inline.js'});
+const cspHash = html.match(/script-src 'sha256-([^']+)'/);
+assert(cspHash, 'CSP inline-script hash missing');
+assert.equal(cspHash[1],createHash('sha256').update(inline[1]).digest('base64'),
+  'CSP hash must match inline script after every code change');
 assert(html.includes('const SyncManager ='), 'Synchronizer missing');
 assert(!/\bon(?:click|mouseenter|mouseleave)\s*=/.test(html), 'Inline DOM event handlers are forbidden');
 assert(html.includes('if (!await DataStore.commit()) return;'), 'Data commit missing');
