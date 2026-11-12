@@ -1144,6 +1144,30 @@
                 <h2>Správa dat</h2>
             </div>
 
+
+            <div style="margin-bottom:30px; padding:20px; background:var(--bg-gray); border:1px solid var(--border-color); border-radius:8px;">
+                <h3 style="margin-bottom:12px;">🔒 Synchronizace agendy (E2EE)</h3>
+                <p style="color:var(--text-gray); margin-bottom:12px;">Volitelná synchronizace přes šifrované souborové úložiště. Heslo se neukládá a neposílá serveru.</p>
+                <div class="form-group">
+                    <label for="sync-url">URL úložiště/skupiny</label>
+                    <input id="sync-url" type="url" autocomplete="url" placeholder="https://sync.example.cz/sync.php/oddeleni-a">
+                </div>
+                <div class="form-group">
+                    <label for="sync-password">Heslo agendy</label>
+                    <input id="sync-password" type="password" autocomplete="off" placeholder="Silná společná heslová fráze">
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+                    <button class="btn btn-primary" type="button" id="sync-connect">Ověřit a připojit</button>
+                    <button class="btn btn-secondary" type="button" id="sync-refresh" disabled>Synchronizovat</button>
+                    <button class="btn btn-secondary" type="button" id="sync-handover" disabled>Předat</button>
+                    <button class="btn btn-secondary" type="button" id="sync-takeover" disabled>Převzít agendu</button>
+                    <button class="btn btn-secondary" type="button" id="sync-history" disabled>Obnovit historii</button>
+                    <button class="btn btn-danger" type="button" id="sync-disconnect">Odpojit</button>
+                </div>
+                <p id="sync-status" role="status" aria-live="polite" style="font-size:14px;"></p>
+                <p style="color:var(--text-gray);font-size:12px;">Při ztrátě spojení nejsou synchronizované zápisy potvrzovány. Sdílené heslo umožňuje každému držiteli přístup i převzetí hlavní role.</p>
+            </div>
+
             <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
                 <p style="margin: 0; color: #856404;">
                     <strong>ℹ️ Informace:</strong> Tato funkce umožňuje zálohovat všechna data aplikace (čipy, zaměstnance a výpůjčky) do jednoho souboru. 
@@ -1617,6 +1641,419 @@
         let borrowings = Storage.get('borrowings', []);
         let backupPendingChanges = parseInt(localStorage.getItem(BACKUP_PENDING_CHANGES_STORAGE_KEY), 10);
 
+
+        // --- Optional E2EE synchronization (protocol v1) ---
+        // Password, derived keys and bearer token are held in memory only.
+        const syncEncoder = new TextEncoder();
+        const syncDecoder = new TextDecoder();
+        const toB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const fromB64 = value => {
+            if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('Neplatné Base64url');
+            const raw = atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4));
+            return Uint8Array.from(raw, char => char.charCodeAt(0));
+        };
+        const safeClone = value => JSON.parse(JSON.stringify(value));
+        const htmlEscape = value => String(value ?? '').replace(/[&<>"']/g, ch =>
+            ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        const safeNumber = value => Number.isSafeInteger(Number(value)) ? Number(value) : 0;
+
+        const DataStore = {
+            snapshot: () => safeClone({chips, employees, borrowings}),
+            persist() {
+                Storage.set('chips', chips);
+                Storage.set('employees', employees);
+                Storage.set('borrowings', borrowings);
+            },
+            apply(data) {
+                chips = safeClone(data.chips);
+                employees = safeClone(data.employees);
+                borrowings = safeClone(data.borrowings);
+                this.persist();
+                this.render();
+            },
+            render() {
+                renderChips(); renderEmployees(); renderBorrowings();
+                updateDataStats(); updateMonthsOverview();
+            },
+            async commit() {
+                if (!SyncManager.active) {
+                    this.persist();
+                    return true;
+                }
+                return SyncManager.commitData();
+            }
+        };
+
+        const SyncManager = {
+            active: false, busy: false, current: null, etag: null, keys: null,
+            url: '', group: '', instanceId: '', timer: null, statusText: 'Lokální režim',
+            init() {
+                this.instanceId = localStorage.getItem('plavenky_sync_instance_id');
+                if (!this.instanceId || !/^[a-f0-9-]{36}$/i.test(this.instanceId)) {
+                    this.instanceId = crypto.randomUUID();
+                    localStorage.setItem('plavenky_sync_instance_id', this.instanceId);
+                }
+                const urlInput = document.getElementById('sync-url');
+                urlInput.value = localStorage.getItem('plavenky_sync_url') || '';
+                document.getElementById('sync-connect').addEventListener('click', () => this.connect());
+                document.getElementById('sync-disconnect').addEventListener('click', () => this.disconnect());
+                document.getElementById('sync-refresh').addEventListener('click', () => this.refresh(true));
+                document.getElementById('sync-takeover').addEventListener('click', () => this.takeover());
+                document.getElementById('sync-handover').addEventListener('click', () => this.handover());
+                document.getElementById('sync-history').addEventListener('click', () => this.restoreHistory());
+                this.timer = setInterval(() => {
+                    if (this.active && !document.hidden) this.refresh(false);
+                }, 30000);
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden && this.active) this.refresh(false);
+                });
+                this.statusText = urlInput.value ? 'Heslo není zadáno – synchronizace vypnutá' : 'Lokální režim';
+                this.ui();
+            },
+            normalizeUrl(value) {
+                const u = new URL(value);
+                if (u.protocol !== 'https:' &&
+                    !(u.protocol === 'http:' && ['localhost','127.0.0.1','[::1]'].includes(u.hostname))) {
+                    throw new Error('Synchronizace vyžaduje HTTPS');
+                }
+                if (u.search || u.hash || !/\/sync\.php\/[A-Za-z0-9_.\/-]+$/.test(u.pathname)) {
+                    throw new Error('URL musí končit /sync.php/nazev-skupiny');
+                }
+                const parts = u.pathname.split('/sync.php/')[1].split('/');
+                if (parts.length > 12 || parts.some(s => !s || s === '.' || s === '..' || s.length > 64)) {
+                    throw new Error('Neplatná cesta skupiny');
+                }
+                return {url: u.origin + u.pathname, group: u.hostname.toLowerCase() + '|' + parts.join('/')};
+            },
+            async derive(password, kdf, group) {
+                if (kdf.name !== 'PBKDF2-SHA256' || !Number.isInteger(kdf.iterations) ||
+                    kdf.iterations < 600000 || kdf.iterations > 2000000 ||
+                    fromB64(kdf.salt).length !== 32) throw new Error('Nepodporované KDF parametry');
+                const seed = await crypto.subtle.importKey('raw', syncEncoder.encode(password.normalize('NFC')),
+                    'PBKDF2', false, ['deriveBits']);
+                const master = await crypto.subtle.deriveBits({
+                    name:'PBKDF2', salt:fromB64(kdf.salt),
+                    iterations:kdf.iterations, hash:'SHA-256'
+                }, seed, 256);
+                const hkdf = async (data, info) => {
+                    const key = await crypto.subtle.importKey('raw', data, 'HKDF', false, ['deriveBits']);
+                    return new Uint8Array(await crypto.subtle.deriveBits({
+                        name:'HKDF', hash:'SHA-256', salt:new Uint8Array(32), info:syncEncoder.encode(info)
+                    }, key, 256));
+                };
+                const enc = await hkdf(master, 'plavenky:data:v1|' + group);
+                const auth = await hkdf(master, 'plavenky:auth:v1|' + group);
+                const token = await hkdf(auth, 'plavenky:bearer:v1');
+                const verifier = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', token)))
+                    .map(v => v.toString(16).padStart(2, '0')).join('');
+                const aes = await crypto.subtle.importKey('raw', enc, 'AES-GCM', false, ['encrypt','decrypt']);
+                return {aes, token:toB64(token), verifier};
+            },
+            aad() {
+                return syncEncoder.encode('plavenky|v1|' + this.group + '|snapshot');
+            },
+            async encrypt(state) {
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const ciphertext = await crypto.subtle.encrypt({
+                    name:'AES-GCM', iv, additionalData:this.aad(), tagLength:128
+                }, this.keys.aes, syncEncoder.encode(JSON.stringify(state)));
+                return JSON.stringify({v:1,alg:'AES-256-GCM',iv:toB64(iv),ciphertext:toB64(ciphertext)});
+            },
+            async decrypt(envelope) {
+                const e = JSON.parse(envelope);
+                if (e.v !== 1 || e.alg !== 'AES-256-GCM' || fromB64(e.iv).length !== 12) {
+                    throw new Error('Nepodporovaný nebo poškozený snapshot');
+                }
+                const raw = await crypto.subtle.decrypt({
+                    name:'AES-GCM', iv:fromB64(e.iv), additionalData:this.aad(), tagLength:128
+                }, this.keys.aes, fromB64(e.ciphertext));
+                const state = JSON.parse(syncDecoder.decode(raw));
+                this.validate(state);
+                return state;
+            },
+            validate(state) {
+                if (!state || state.protocolVersion !== 1 ||
+                    !Number.isSafeInteger(state.revision) || state.revision < 1 ||
+                    !Number.isSafeInteger(state.epoch) || state.epoch < 1 ||
+                    !/^[a-f0-9-]{36}$/i.test(state.snapshotId || '') ||
+                    (state.primaryInstanceId !== null && !/^[a-f0-9-]{36}$/i.test(state.primaryInstanceId || '')) ||
+                    !Array.isArray(state.chips) || !Array.isArray(state.employees) || !Array.isArray(state.borrowings)) {
+                    throw new Error('Snapshot má neplatnou strukturu');
+                }
+                const idOK = x => Number.isSafeInteger(x) && x > 0;
+                if (state.chips.some(x => !idOK(x.id) || typeof x.identifier !== 'string') ||
+                    state.employees.some(x => !idOK(x.id) || typeof x.name !== 'string' ||
+                        typeof x.employeeNumber !== 'string' || typeof x.department !== 'string') ||
+                    state.borrowings.some(x => !idOK(x.id) || !idOK(x.employeeId) ||
+                        !Array.isArray(x.chips) || x.chips.some(id => !idOK(id)) ||
+                        typeof x.startDate !== 'string' || !(x.endDate === null || typeof x.endDate === 'string'))) {
+                    throw new Error('Snapshot obsahuje neplatné záznamy');
+                }
+            },
+            async request(object, method = 'GET', bytes = null, headers = {}) {
+                const response = await fetch(this.url + (object ? '?object=' + encodeURIComponent(object) : ''), {
+                    method,
+                    headers: Object.assign(
+                        this.keys ? {'Authorization':'Bearer ' + this.keys.token} : {},
+                        headers
+                    ),
+                    body:bytes,
+                    cache:'no-store'
+                });
+                if (!response.ok) {
+                    let detail = '';
+                    try { detail = (await response.json()).error || ''; } catch (_) {}
+                    const error = new Error('Server HTTP ' + response.status + (detail ? ': ' + detail : ''));
+                    error.status = response.status;
+                    throw error;
+                }
+                return response;
+            },
+            async readCurrent() {
+                const response = await this.request('current');
+                const envelope = await response.text();
+                const state = await this.decrypt(envelope);
+                return {state, envelope, etag:response.headers.get('ETag')};
+            },
+            async connect() {
+                if (this.busy) return;
+                this.busy = true;
+                try {
+                    const userUrl = document.getElementById('sync-url').value.trim();
+                    const password = document.getElementById('sync-password').value;
+                    if (!userUrl || !password) throw new Error('Vyplňte URL a heslo agendy');
+                    const location = this.normalizeUrl(userUrl);
+                    this.active = false;
+                    this.keys = null;
+                    this.url = location.url;
+                    this.group = location.group;
+                    const response = await this.request('');
+                    const diag = await response.json();
+                    if (!diag.configured) throw new Error('Úložiště není připraveno: ' +
+                        (diag.errors || []).map(e => e.code).join(', '));
+                    if (!diag.initialized) {
+                        if (password.length < 20) throw new Error('Pro novou agendu použijte heslo alespoň 20 znaků');
+                        if (!await CustomDialog.confirm(
+                            'Úložiště ještě neobsahuje agendu. Inicializovat jej aktuálními lokálními daty? ' +
+                            'Ujistěte se, že cesta není veřejně předvídatelná.')) return;
+                        const kdf = {name:'PBKDF2-SHA256',iterations:600000,
+                            salt:toB64(crypto.getRandomValues(new Uint8Array(32)))};
+                        this.keys = await this.derive(password, kdf, this.group);
+                        const first = Object.assign({
+                            protocolVersion:1,revision:1,epoch:1,snapshotId:crypto.randomUUID(),
+                            parentSnapshotId:null,primaryInstanceId:this.instanceId
+                        }, DataStore.snapshot());
+                        this.validate(first);
+                        const envelope = await this.encrypt(first);
+                        await this.request('initialize', 'POST', JSON.stringify({
+                            protocolVersion:1,kdf,authVerifier:this.keys.verifier,
+                            snapshot:toB64(syncEncoder.encode(envelope))
+                        }), {'Content-Type':'application/json','If-None-Match':'*'});
+                    } else {
+                        this.keys = await this.derive(password, diag.kdf, this.group);
+                    }
+                    const remote = await this.readCurrent();
+                    const local = DataStore.snapshot();
+                    const distant = {chips:remote.state.chips,employees:remote.state.employees,borrowings:remote.state.borrowings};
+                    const isDifferent = JSON.stringify(local) !== JSON.stringify(distant);
+                    if (isDifferent && (local.chips.length || local.employees.length || local.borrowings.length)) {
+                        if (!await CustomDialog.confirm('Lokální data se liší od vzdálené agendy. ' +
+                            'Před jejich nahrazením se stáhne místní JSON záloha. Pokračovat?')) return;
+                        this.downloadBackup(local);
+                    }
+                    this.current = remote.state;
+                    this.etag = remote.etag;
+                    this.active = true;
+                    DataStore.apply(remote.state);
+                    clearPendingBackupChanges();
+                    localStorage.setItem('plavenky_sync_url', this.url);
+                    document.getElementById('sync-password').value = '';
+                    this.statusText = 'Připojeno a synchronizováno';
+                } catch (error) {
+                    this.active = false;
+                    this.keys = null;
+                    this.statusText = 'Chyba připojení: ' + error.message;
+                    await CustomDialog.alert(this.statusText, 'Synchronizace');
+                } finally {
+                    this.busy = false; this.ui();
+                }
+            },
+            downloadBackup(local) {
+                const blob = new Blob([JSON.stringify({version:'1.0', exportDate:new Date().toISOString(), ...local}, null, 2)],
+                    {type:'application/json'});
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'plavenky-pred-synchronizaci-' + new Date().toISOString().slice(0,10) + '.json';
+                document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+            },
+            async archive(envelope, snapshotId) {
+                try {
+                    await this.request('history/' + snapshotId, 'PUT', envelope,
+                        {'If-None-Match':'*','Content-Type':'application/octet-stream'});
+                } catch (error) {
+                    if (error.status !== 412) throw error;
+                }
+            },
+            async saveState(previous, next) {
+                this.validate(next);
+                const envelope = await this.encrypt(next);
+                await this.archive(previous.envelope, previous.state.snapshotId);
+                const result = await this.request('current', 'PUT', envelope,
+                    {'If-Match':previous.etag,'Content-Type':'application/octet-stream'});
+                this.current = next;
+                this.etag = result.headers.get('ETag');
+                DataStore.apply(next);
+                clearPendingBackupChanges();
+                this.statusText = 'Synchronizováno: revize ' + next.revision;
+                this.ui();
+            },
+            async commitData() {
+                if (this.busy) {
+                    DataStore.apply(this.current);
+                    await CustomDialog.alert('Probíhá synchronizace; změna nebyla uložena.');
+                    return false;
+                }
+                if (this.current.primaryInstanceId !== this.instanceId) {
+                    DataStore.apply(this.current);
+                    await CustomDialog.alert('Tato instance není hlavní. Změna nebyla uložena.');
+                    return false;
+                }
+                const staged = DataStore.snapshot();
+                this.busy = true;
+                try {
+                    const previous = await this.readCurrent();
+                    if (previous.state.snapshotId !== this.current.snapshotId) {
+                        this.current = previous.state; this.etag = previous.etag;
+                        DataStore.apply(previous.state);
+                        throw new Error('Vzdálená agenda byla změněna. Načtena nová verze; změnu zopakujte.');
+                    }
+                    const next = Object.assign({}, this.current, staged, {
+                        revision:this.current.revision+1, snapshotId:crypto.randomUUID(),
+                        parentSnapshotId:this.current.snapshotId
+                    });
+                    await this.saveState(previous, next);
+                    return true;
+                } catch (error) {
+                    if (error.status === 412) {
+                        try {
+                            const latest = await this.readCurrent();
+                            this.current = latest.state; this.etag = latest.etag;
+                        } catch (_) {}
+                    }
+                    DataStore.apply(this.current);
+                    this.statusText = 'Nepotvrzený zápis: ' + error.message;
+                    await CustomDialog.alert(this.statusText, 'Synchronizace');
+                    return false;
+                } finally {
+                    this.busy = false; this.ui();
+                }
+            },
+            async refresh(showAlert = false) {
+                if (!this.active || this.busy) return;
+                this.busy = true;
+                try {
+                    const latest = await this.readCurrent();
+                    if (latest.state.revision < this.current.revision) {
+                        throw new Error('Server vrátil starší revizi – podezření na rollback');
+                    }
+                    if (latest.state.snapshotId !== this.current.snapshotId) {
+                        this.current = latest.state; this.etag = latest.etag;
+                        DataStore.apply(latest.state);
+                        clearPendingBackupChanges();
+                    }
+                    this.statusText = 'Synchronizováno: revize ' + this.current.revision;
+                    if (showAlert) await CustomDialog.alert('Agenda je aktuální.');
+                } catch (error) {
+                    this.statusText = 'Chyba synchronizace: ' + error.message;
+                    if (showAlert) await CustomDialog.alert(this.statusText, 'Synchronizace');
+                } finally { this.busy = false; this.ui(); }
+            },
+            async changePrimary(target, message) {
+                if (!this.active || this.busy) return;
+                if (!await CustomDialog.confirm(message)) return;
+                this.busy = true;
+                try {
+                    const previous = await this.readCurrent();
+                    if (previous.state.snapshotId !== this.current.snapshotId) {
+                        this.current = previous.state; this.etag = previous.etag;
+                        DataStore.apply(previous.state);
+                        throw new Error('Agenda se mezitím změnila. Zkontrolujte stav a opakujte.');
+                    }
+                    const next = Object.assign({}, this.current, {
+                        revision:this.current.revision + 1,epoch:this.current.epoch + 1,
+                        snapshotId:crypto.randomUUID(),parentSnapshotId:this.current.snapshotId,
+                        primaryInstanceId:target
+                    });
+                    await this.saveState(previous, next);
+                } catch (error) {
+                    this.statusText = 'Předání se nezdařilo: ' + error.message;
+                    await CustomDialog.alert(this.statusText);
+                } finally { this.busy = false; this.ui(); }
+            },
+            async takeover() {
+                if (!this.active || this.current.primaryInstanceId === this.instanceId) return;
+                return this.changePrimary(this.instanceId,
+                    'Nouzově převzít agendu? Dosavadní hlavní instance ztratí možnost zapisovat po synchronizaci.');
+            },
+            async handover() {
+                if (!this.active || this.current.primaryInstanceId !== this.instanceId) return;
+                const target = await CustomDialog.prompt('Zadejte ID instance nástupce (UUID):');
+                if (target === null) return;
+                if (!/^[a-f0-9-]{36}$/i.test(target) || target === this.instanceId) {
+                    await CustomDialog.alert('Neplatné ID nástupce'); return;
+                }
+                return this.changePrimary(target, 'Předat hlavní roli instanci ' + target + '?');
+            },
+            async restoreHistory() {
+                if (!this.active || this.current.primaryInstanceId !== this.instanceId || this.busy) return;
+                try {
+                    const listing = await (await this.request('history')).json();
+                    if (!listing.versions.length) { await CustomDialog.alert('Historie je prázdná.'); return; }
+                    const id = await CustomDialog.prompt('ID historického snapshotu k obnovení:\n' +
+                        listing.versions.slice(-8).join('\n'));
+                    if (!id) return;
+                    if (!listing.versions.includes(id)) throw new Error('Neznámé ID verze');
+                    const historical = await (await this.request('history/' + id)).text();
+                    const old = await this.decrypt(historical);
+                    if (!await CustomDialog.confirm('Obnovit historickou revizi ' + old.revision +
+                        '? Nová revize nahradí současná data.')) return;
+                    if (this.busy) return;
+                    this.busy = true;
+                    const previous = await this.readCurrent();
+                    if (previous.state.snapshotId !== this.current.snapshotId) throw new Error('Stav se změnil, opakujte akci');
+                    const next = Object.assign({}, this.current, {
+                        chips:old.chips,employees:old.employees,borrowings:old.borrowings,
+                        revision:this.current.revision+1,snapshotId:crypto.randomUUID(),
+                        parentSnapshotId:this.current.snapshotId
+                    });
+                    await this.saveState(previous, next);
+                } catch (error) { await CustomDialog.alert('Obnova se nezdařila: ' + error.message); }
+                finally { this.busy = false; this.ui(); }
+            },
+            disconnect() {
+                this.active = false; this.keys = null; this.current = null; this.etag = null;
+                this.url = ''; this.group = '';
+                localStorage.removeItem('plavenky_sync_url');
+                document.getElementById('sync-url').value = '';
+                document.getElementById('sync-password').value = '';
+                this.statusText = 'Lokální režim – synchronizace odpojena';
+                this.ui();
+            },
+            ui() {
+                const status = document.getElementById('sync-status');
+                if (!status) return;
+                const primary = this.active && this.current && this.current.primaryInstanceId === this.instanceId;
+                const role = !this.active ? '' : (primary ? ' · Hlavní instance' : ' · Záložní instance (čtení)');
+                status.textContent = this.statusText + role + ' · ID ' + this.instanceId.slice(0, 8);
+                document.getElementById('sync-refresh').disabled = !this.active || this.busy;
+                document.getElementById('sync-takeover').disabled = !this.active || primary || this.busy;
+                document.getElementById('sync-handover').disabled = !primary || this.busy;
+                document.getElementById('sync-history').disabled = !primary || this.busy;
+                document.getElementById('sync-connect').disabled = this.busy;
+            }
+        };
+
         function getTotalItemsCount() {
             return chips.length + employees.length + borrowings.length;
         }
@@ -1746,6 +2183,7 @@
             initializeDataManagement();
             initializeMainMenuBackupAction();
             initializeBeforeUnloadProtection();
+            SyncManager.init();
             
             // Set default dates
             const today = new Date();
