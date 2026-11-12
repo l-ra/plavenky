@@ -12,7 +12,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { Script } from 'node:vm';
 
 const html = readFileSync('index-dev.html', 'utf8');
-const inline = html.match(/<script>\s*([\s\S]*?)<\/script>/);
+const inline = html.match(/<script>([\s\S]*?)<\/script>/);
 assert(inline, 'Inline JS not found');
 new Script(inline[1], {filename:'index-dev-inline.js'});
 const cspHash = html.match(/script-src 'sha256-([^']+)'/);
