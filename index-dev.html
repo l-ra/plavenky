@@ -1681,6 +1681,7 @@
             render() {
                 renderChips(); renderEmployees(); renderBorrowings();
                 updateDataStats(); updateMonthsOverview();
+                if (SyncManager.active) SyncManager.ui();
             },
             async commit() {
                 if (!SyncManager.active) {
@@ -2055,12 +2056,30 @@
                 if (!status) return;
                 const primary = this.active && this.current && this.current.primaryInstanceId === this.instanceId;
                 const role = !this.active ? '' : (primary ? ' · Hlavní instance' : ' · Záložní instance (čtení)');
-                status.textContent = this.statusText + role + ' · ID ' + this.instanceId.slice(0, 8);
+                status.textContent = this.statusText + role + ' · ID instance: ' + this.instanceId;
                 document.getElementById('sync-refresh').disabled = !this.active || this.busy;
                 document.getElementById('sync-takeover').disabled = !this.active || primary || this.busy;
                 document.getElementById('sync-handover').disabled = !primary || this.busy;
                 document.getElementById('sync-history').disabled = !primary || this.busy;
                 document.getElementById('sync-connect').disabled = this.busy;
+                // Disable editing controls on backups; commit validation remains authoritative.
+                const readonly = this.active && !primary;
+                const selectors = [
+                    '#add-chip-form button[type="submit"]',
+                    '#add-employee-form button[type="submit"]',
+                    '#new-borrowing-form button[type="submit"]',
+                    '#edit-borrowing-form button[type="submit"]',
+                    '#edit-employee-form button[type="submit"]',
+                    '#import-chips-btn', '#import-employees-btn', '#import-borrowings-btn',
+                    '#import-all-data-btn', '#import-all-data-excel-btn', '#delete-all-data',
+                    '#chips-list .actions button', '#chips-list [data-plavenky-action]',
+                    '#employees-list .actions button', '#borrowings-list .actions button',
+                    '#months-overview [data-plavenky-action]'
+                ];
+                document.querySelectorAll(selectors.join(',')).forEach(element => {
+                    element.disabled = readonly || this.busy;
+                    element.title = readonly ? 'Změny může provádět pouze hlavní instance' : '';
+                });
             }
         };
 
