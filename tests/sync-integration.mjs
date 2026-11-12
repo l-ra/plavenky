@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import vm from 'node:vm';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strict as assert } from 'node:assert';
@@ -16,6 +16,7 @@ const inline = html.match(/<script>\s*([\s\S]*?)<\/script>/);
 assert(inline, 'Inline JS not found');
 new Script(inline[1], {filename:'index-dev-inline.js'});
 assert(html.includes('const SyncManager ='), 'Synchronizer missing');
+assert(!/\bon(?:click|mouseenter|mouseleave)\s*=/.test(html), 'Inline DOM event handlers are forbidden');
 assert(html.includes('if (!await DataStore.commit()) return;'), 'Data commit missing');
 
 const temporary = mkdtempSync(join(tmpdir(), 'plavenky-sync-test-'));
@@ -103,6 +104,17 @@ try {
   assert(list.versions.includes(historyId));
   const other = await (await request(origin + '/sync.php/skupina-b')).json();
   assert.equal(other.initialized,false);
+  // A pre-created but empty data directory must be usable.
+  mkdirSync(join(temporary, 'localhost', 'precreated', 'data'), {recursive:true});
+  const newGroupUrl = origin + '/sync.php/precreated';
+  const emptyDir = await (await request(newGroupUrl)).json();
+  assert.equal(emptyDir.configured,true);
+  assert.equal(emptyDir.initialized,false);
+  const initEmpty = await request(newGroupUrl + '?object=initialize', {
+    method:'POST',headers:{...auth,'Content-Type':'application/json','If-None-Match':'*'},
+    body:JSON.stringify(initial)
+  });
+  assert.equal(initEmpty.status,201,await initEmpty.text());
   const badPath = await request(origin + '/sync.php/%25traversal');
   assert.equal(badPath.status,400);
 
