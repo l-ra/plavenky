@@ -123,7 +123,7 @@ try {
     const store = new Map();
     const sandbox={
       crypto:webcrypto,TextEncoder,TextDecoder,URL,atob,btoa,fetch,Blob,
-      document:{hidden:false,getElementById(id){return elements.get(id);},addEventListener(){}},
+      document:{hidden:false,getElementById(id){return elements.get(id);},addEventListener(){},querySelectorAll(){return [];}},
       localStorage:{getItem(k){return store.get(k)??null;},setItem(k,v){store.set(k,String(v));},removeItem(k){store.delete(k);}},
       Storage:{set(k,v){store.set(k,JSON.stringify(v));}},
       chips:JSON.parse(JSON.stringify(chipsInitial)),employees:[],borrowings:[],
