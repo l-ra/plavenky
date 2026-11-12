@@ -2,7 +2,8 @@
 // Integration test: PHP 8 file server, authentication, atomic ETags, group isolation.
 // Run from repository root: node tests/sync-integration.mjs
 import { spawn } from 'node:child_process';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, webcrypto } from 'node:crypto';
+import vm from 'node:vm';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -104,7 +105,71 @@ try {
   assert.equal(other.initialized,false);
   const badPath = await request(origin + '/sync.php/%25traversal');
   assert.equal(badPath.status,400);
-  console.log('PASS: JS syntax, diagnostics, initialization, auth, ETag CAS, history, group isolation and path validation');
+
+  // Two independent simulated browser instances using the actual client sync module.
+  const markerA = html.indexOf('        // --- Optional E2EE synchronization');
+  const markerB = html.indexOf('        function getTotalItemsCount()', markerA);
+  assert(markerA >= 0 && markerB > markerA);
+  const clientSource = html.slice(markerA,markerB) +
+      '\nthis.sync = SyncManager; this.dataStore = DataStore;';
+  function makeClient(chipsInitial = []) {
+    const elements = new Map();
+    for (const id of ['sync-url','sync-password','sync-status','sync-refresh','sync-takeover',
+      'sync-handover','sync-history','sync-connect','sync-disconnect']) {
+      elements.set(id,{value:'',disabled:false,textContent:'',addEventListener(){}});
+    }
+    elements.get('sync-url').value=url;
+    elements.get('sync-password').value='A very long correct horse battery staple password';
+    const store = new Map();
+    const sandbox={
+      crypto:webcrypto,TextEncoder,TextDecoder,URL,atob,btoa,fetch,Blob,
+      document:{hidden:false,getElementById(id){return elements.get(id);},addEventListener(){}},
+      localStorage:{getItem(k){return store.get(k)??null;},setItem(k,v){store.set(k,String(v));},removeItem(k){store.delete(k);}},
+      Storage:{set(k,v){store.set(k,JSON.stringify(v));}},
+      chips:JSON.parse(JSON.stringify(chipsInitial)),employees:[],borrowings:[],
+      clearPendingBackupChanges(){},renderChips(){},renderEmployees(){},renderBorrowings(){},
+      updateDataStats(){},updateMonthsOverview(){},setInterval(){return 1;},
+      CustomDialog:{async confirm(){return true;},async alert(msg){sandbox.lastAlert=msg;},async prompt(){return null;}},
+      console
+    };
+    vm.runInNewContext(clientSource,sandbox);
+    sandbox.sync.init();
+    return {sandbox,elements,store};
+  }
+  const clientUrl = origin + '/sync.php/integration-clients';
+  const A = makeClient([{id:1,identifier:'Plavecky cip c. 1'}]);
+  const B = makeClient();
+  for(const client of [A,B]) client.elements.get('sync-url').value=clientUrl;
+  await A.sandbox.sync.connect();
+  assert(A.sandbox.sync.active, A.sandbox.sync.statusText);
+  assert.equal(A.sandbox.sync.current.primaryInstanceId,A.sandbox.sync.instanceId);
+  await B.sandbox.sync.connect();
+  assert(B.sandbox.sync.active, B.sandbox.sync.statusText);
+  assert.equal(B.sandbox.chips.length,1);
+  assert.notEqual(B.sandbox.sync.current.primaryInstanceId,B.sandbox.sync.instanceId);
+  A.sandbox.chips.push({id:2,identifier:'Novy cip'});
+  assert.equal(await A.sandbox.dataStore.commit(),true);
+  await B.sandbox.sync.refresh();
+  assert.equal(B.sandbox.chips.length,2);
+  await B.sandbox.sync.takeover();
+  assert.equal(B.sandbox.sync.current.primaryInstanceId,B.sandbox.sync.instanceId);
+  A.sandbox.chips.push({id:3,identifier:'Stara instance'});
+  assert.equal(await A.sandbox.dataStore.commit(),false);
+  assert.equal(A.sandbox.chips.length,2);
+  await A.sandbox.sync.refresh();
+  assert.equal(A.sandbox.sync.current.primaryInstanceId,B.sandbox.sync.instanceId);
+  B.sandbox.chips.push({id:4,identifier:'Hlavni instance B'});
+  assert.equal(await B.sandbox.dataStore.commit(),true);
+  await A.sandbox.sync.refresh();
+  assert.equal(A.sandbox.chips.length,3);
+  const C = makeClient();
+  C.elements.get('sync-url').value=clientUrl;
+  C.elements.get('sync-password').value='Completely wrong but very long password';
+  await C.sandbox.sync.connect();
+  assert.equal(C.sandbox.sync.active,false);
+  assert.match(C.sandbox.sync.statusText,/401/);
+
+  console.log('PASS: JS syntax, diagnostics, initialization, auth, ETag CAS, history, group isolation and path validation, two-client takeover');
 } finally {
   php.kill('SIGTERM');
   rmSync(temporary,{recursive:true,force:true});
