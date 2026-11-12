@@ -106,3 +106,9 @@ Při připojeném režimu hlavní instance před každým zápisem načte aktuá
 GitHub Actions workflow .github/workflows/sync-ci.yml spouští PHP syntax check, WebCrypto testy a HTTP testy včetně dvou izolovaných klientů a nouzového převzetí. Produkční index.html nebyl změněn.
 
 Původní anonymní statistiky jsou ve vývojové verzi vypnuté, dokud uživatel ve Správě dat výslovně nezaškrtne souhlas s jejich odesíláním. Externí XLSX knihovna má pevně ověřovanou SHA-384 integritu (SRI).
+
+## Bezpečnostní politika skriptů
+
+Vývojová stránka nyní používá CSP, která povoluje její konkrétní inline JavaScript pouze pomocí SHA-256 hashe; nenačítá neověřený Markdown jako HTML a dynamické hodnoty se escapují. Externí XLSX skript je připnut pomocí SHA-384 Subresource Integrity (SRI). Pokud se změní obsah inline skriptu v index-dev.html, je nutné znovu vypočítat CSP SHA-256 hash a aktualizovat meta hlavičku. Automatický test tests/sync-integration.mjs kontroluje shodu a GitHub Actions při nesouladu selže.
+
+SRI ověřuje obsah XLSX knihovny, ale zatím není přibalena přímo do repozitáře; dostupnost CDN je stále potřeba pro Excel import/export. JSON operace a šifrování fungují bez XLSX knihovny.
