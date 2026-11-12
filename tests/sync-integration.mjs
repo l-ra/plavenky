@@ -128,15 +128,17 @@ try {
   assert(markerA >= 0 && markerB > markerA);
   const clientSource = html.slice(markerA,markerB) +
       '\nthis.sync = SyncManager; this.dataStore = DataStore;';
-  function makeClient(chipsInitial = []) {
+  function makeClient(chipsInitial = [], persistedStore = null) {
     const elements = new Map();
     for (const id of ['sync-url','sync-password','sync-status','sync-refresh','sync-takeover',
-      'sync-handover','sync-history','sync-connect','sync-disconnect','analytics-optin']) {
+      'sync-handover','sync-history','sync-connect','sync-disconnect','sync-forget-password',
+      'sync-password-storage-status','analytics-optin']) {
       elements.set(id,{value:'',disabled:false,textContent:'',addEventListener(){}});
     }
     elements.get('sync-url').value=url;
-    elements.get('sync-password').value='A very long correct horse battery staple password';
-    const store = new Map();
+    elements.get('sync-password').value = persistedStore ? '' :
+        'A very long correct horse battery staple password';
+    const store = persistedStore || new Map();
     const sandbox={
       crypto:webcrypto,TextEncoder,TextDecoder,URL,atob,btoa,fetch,Blob,
       document:{hidden:false,getElementById(id){return elements.get(id);},addEventListener(){},querySelectorAll(){return [];}},
@@ -159,6 +161,17 @@ try {
   await A.sandbox.sync.connect();
   assert(A.sandbox.sync.active, A.sandbox.sync.statusText);
   assert.equal(A.sandbox.sync.current.primaryInstanceId,A.sandbox.sync.instanceId);
+  assert.equal(A.store.get('plavenky_sync_password'),
+    'A very long correct horse battery staple password');
+  assert.equal(A.store.get('plavenky_sync_url'),clientUrl);
+  assert.equal(A.elements.get('sync-password').value,'');
+  const AReloaded = makeClient(JSON.parse(A.store.get('chips')), A.store);
+  for (let attempt=0;attempt<60 && !AReloaded.sandbox.sync.active;attempt++) await sleep(50);
+  assert(AReloaded.sandbox.sync.active,
+    'Auto reconnect after reload failed: ' + AReloaded.sandbox.sync.statusText);
+  assert.equal(AReloaded.sandbox.sync.instanceId, A.sandbox.sync.instanceId);
+  assert.equal(AReloaded.elements.get('sync-password').value,'');
+  assert.match(AReloaded.sandbox.sync.statusText,/Automaticky připojeno/);
   await B.sandbox.sync.connect();
   assert(B.sandbox.sync.active, B.sandbox.sync.statusText);
   assert.equal(B.sandbox.chips.length,1);
@@ -184,8 +197,28 @@ try {
   await C.sandbox.sync.connect();
   assert.equal(C.sandbox.sync.active,false);
   assert.match(C.sandbox.sync.statusText,/401/);
+  assert.equal(C.store.has('plavenky_sync_password'),false);
 
-  console.log('PASS: JS syntax, diagnostics, initialization, auth, ETag CAS, history, group isolation and path validation, two-client takeover');
+  // Removing the saved password immediately closes the encrypted session,
+  // while preserving the URL for manual re-entry.
+  AReloaded.sandbox.sync.forgetSavedPassword();
+  assert.equal(A.store.has('plavenky_sync_password'),false);
+  assert.equal(A.store.get('plavenky_sync_url'),clientUrl);
+  assert.equal(AReloaded.sandbox.sync.active,false);
+  const lockedAfterReload = makeClient(JSON.parse(A.store.get('chips')), A.store);
+  await sleep(100);
+  assert.equal(lockedAfterReload.sandbox.sync.active,false);
+  assert.match(lockedAfterReload.sandbox.sync.statusText,/Heslo není uložené/);
+  lockedAfterReload.elements.get('sync-password').value =
+    'A very long correct horse battery staple password';
+  await lockedAfterReload.sandbox.sync.connect();
+  assert(lockedAfterReload.sandbox.sync.active);
+  assert.equal(A.store.has('plavenky_sync_password'),true);
+  lockedAfterReload.sandbox.sync.disconnect();
+  assert.equal(A.store.has('plavenky_sync_password'),false);
+  assert.equal(A.store.has('plavenky_sync_url'),false);
+
+  console.log('PASS: JS syntax, diagnostics, auth, ETag CAS, crypto sync, auto-reconnect, password removal and two-client takeover');
 } finally {
   php.kill('SIGTERM');
   rmSync(temporary,{recursive:true,force:true});
