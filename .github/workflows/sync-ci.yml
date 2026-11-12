@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: XLSX dependency checksum
+        run: curl -fsSL 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js' | openssl dgst -sha384 -binary | openssl base64 -A
       - name: PHP syntax
         run: php -l sync.php
       - name: Cryptography tests
