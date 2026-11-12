@@ -1148,14 +1148,15 @@
 
             <div style="margin-bottom:30px; padding:20px; background:var(--bg-gray); border:1px solid var(--border-color); border-radius:8px;">
                 <h3 style="margin-bottom:12px;">🔒 Synchronizace agendy (E2EE)</h3>
-                <p style="color:var(--text-gray); margin-bottom:12px;">Volitelná synchronizace přes šifrované souborové úložiště. Heslo se neukládá a neposílá serveru.</p>
+                <p style="color:var(--text-gray); margin-bottom:12px;">Volitelná synchronizace přes šifrované souborové úložiště. Po úspěšném připojení se heslo uloží v tomto prohlížeči a při dalším spuštění se použije automaticky. Na server se samotné heslo neposílá.</p>
                 <div class="form-group">
                     <label for="sync-url">URL úložiště/skupiny</label>
                     <input id="sync-url" type="url" autocomplete="url" placeholder="https://sync.example.cz/sync.php/oddeleni-a">
                 </div>
                 <div class="form-group">
-                    <label for="sync-password">Heslo agendy</label>
+                    <label for="sync-password">Heslo agendy (uloží se do tohoto prohlížeče)</label>
                     <input id="sync-password" type="password" autocomplete="off" placeholder="Silná společná heslová fráze">
+                    <small id="sync-password-storage-status" aria-live="polite" style="display:block;margin-top:6px;color:var(--text-gray);"></small>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
                     <button class="btn btn-primary" type="button" id="sync-connect">Ověřit a připojit</button>
@@ -1163,13 +1164,14 @@
                     <button class="btn btn-secondary" type="button" id="sync-handover" disabled>Předat</button>
                     <button class="btn btn-secondary" type="button" id="sync-takeover" disabled>Převzít agendu</button>
                     <button class="btn btn-secondary" type="button" id="sync-history" disabled>Obnovit historii</button>
-                    <button class="btn btn-danger" type="button" id="sync-disconnect">Odpojit</button>
+                    <button class="btn btn-secondary" type="button" id="sync-forget-password">Zapomenout uložené heslo</button>
+                    <button class="btn btn-danger" type="button" id="sync-disconnect">Odpojit a smazat nastavení</button>
                 </div>
                 <p id="sync-status" role="status" aria-live="polite" style="font-size:14px;"></p>
                 <label style="display:block;margin-top:10px;font-size:13px;">
                     <input type="checkbox" id="analytics-optin"> Povolit zasílání agregovaných statistik používání aplikace (vypnuto ve výchozím stavu)
                 </label>
-                <p style="color:var(--text-gray);font-size:12px;">Při ztrátě spojení nejsou synchronizované zápisy potvrzovány. Sdílené heslo umožňuje každému držiteli přístup i převzetí hlavní role.</p>
+                <p style="color:var(--text-gray);font-size:12px;">Při ztrátě spojení nejsou synchronizované zápisy potvrzovány. Uložené heslo je čitelné v localStorage pro JavaScript na tomto originu a pro osoby s přístupem k profilu prohlížeče; ukládejte ho pouze na důvěryhodném zařízení.</p>
             </div>
 
             <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
@@ -1721,7 +1723,7 @@
                     if (localStorage.getItem('plavenky_sync_url')) {
                         // Prevent accidental forks after reload, while URL is known but password is not.
                         if (this.lastConfirmed) this.apply(this.lastConfirmed);
-                        await CustomDialog.alert('Synchronizovaná agenda je uzamčená. Připojte ji heslem, nebo zvolte Odpojit pro lokální režim.');
+                        await CustomDialog.alert('Synchronizovaná agenda je uzamčená. Zkontrolujte uložené heslo a připojení, nebo zvolte Odpojit a smazat nastavení pro lokální režim.');
                         return false;
                     }
                     this.persist();
@@ -1735,6 +1737,7 @@
         const SyncManager = {
             active: false, busy: false, current: null, etag: null, keys: null,
             url: '', group: '', instanceId: '', timer: null, statusText: 'Lokální režim',
+            passwordStorageKey: 'plavenky_sync_password',
             init() {
                 DataStore.lastConfirmed = DataStore.snapshot();
                 const analyticsOptIn = document.getElementById('analytics-optin');
@@ -1753,6 +1756,7 @@
                 urlInput.value = localStorage.getItem('plavenky_sync_url') || '';
                 document.getElementById('sync-connect').addEventListener('click', () => this.connect());
                 document.getElementById('sync-disconnect').addEventListener('click', () => this.disconnect());
+                document.getElementById('sync-forget-password').addEventListener('click', () => this.forgetSavedPassword());
                 document.getElementById('sync-refresh').addEventListener('click', () => this.refresh(true));
                 document.getElementById('sync-takeover').addEventListener('click', () => this.takeover());
                 document.getElementById('sync-handover').addEventListener('click', () => this.handover());
@@ -1763,8 +1767,16 @@
                 document.addEventListener('visibilitychange', () => {
                     if (!document.hidden && this.active) this.refresh(false);
                 });
-                this.statusText = urlInput.value ? 'Heslo není zadáno – lokální úpravy uzamčeny (odpojením přejdete na lokální režim)' : 'Lokální režim';
+                const storedPassword = localStorage.getItem(this.passwordStorageKey);
+                this.statusText = urlInput.value
+                    ? (storedPassword ? 'Automatické připojování…' :
+                        'Heslo není uložené – zadejte je pro připojení (agenda pouze pro čtení)')
+                    : 'Lokální režim';
                 this.ui();
+                if (urlInput.value && storedPassword) {
+                    // Do not require user interaction on subsequent launches.
+                    void this.connect({automatic: true});
+                }
             },
             normalizeUrl(value) {
                 const u = new URL(value);
@@ -1871,12 +1883,16 @@
                 const state = await this.decrypt(envelope);
                 return {state, envelope, etag:response.headers.get('ETag')};
             },
-            async connect() {
+            async connect({automatic = false} = {}) {
                 if (this.busy) return;
                 this.busy = true;
                 try {
-                    const userUrl = document.getElementById('sync-url').value.trim();
-                    const password = document.getElementById('sync-password').value;
+                    const savedUrl = localStorage.getItem('plavenky_sync_url') || '';
+                    const userUrl = automatic ? savedUrl : document.getElementById('sync-url').value.trim();
+                    const enteredPassword = automatic ? '' : document.getElementById('sync-password').value;
+                    // Never reuse a password saved for another group's URL.
+                    const password = enteredPassword ||
+                        (userUrl === savedUrl ? localStorage.getItem(this.passwordStorageKey) || '' : '');
                     if (!userUrl || !password) throw new Error('Vyplňte URL a heslo agendy');
                     const location = this.normalizeUrl(userUrl);
                     this.active = false;
@@ -1888,6 +1904,10 @@
                     if (!diag.configured) throw new Error('Úložiště není připraveno: ' +
                         (diag.errors || []).map(e => e.code).join(', '));
                     if (!diag.initialized) {
+                        if (automatic) {
+                            this.statusText = 'Úložiště není inicializováno – potvrďte inicializaci ručním připojením';
+                            return;
+                        }
                         if (password.length < 20) throw new Error('Pro novou agendu použijte heslo alespoň 20 znaků');
                         if (!await CustomDialog.confirm(
                             'Úložiště ještě neobsahuje agendu. Inicializovat jej aktuálními lokálními daty? ' +
@@ -1913,6 +1933,11 @@
                     const distant = {chips:remote.state.chips,employees:remote.state.employees,borrowings:remote.state.borrowings};
                     const isDifferent = JSON.stringify(local) !== JSON.stringify(distant);
                     if (isDifferent && (local.chips.length || local.employees.length || local.borrowings.length)) {
+                        if (automatic) {
+                            this.statusText = 'Automatické připojení pozastaveno: lokální a vzdálená data se liší. ' +
+                                'Otevřete Správu dat a potvrďte ruční připojení.';
+                            return;
+                        }
                         if (!await CustomDialog.confirm('Lokální data se liší od vzdálené agendy. ' +
                             'Před jejich nahrazením se stáhne místní JSON záloha. Pokračovat?')) {
                             this.keys = null;
@@ -1926,13 +1951,16 @@
                     DataStore.apply(remote.state);
                     clearPendingBackupChanges();
                     localStorage.setItem('plavenky_sync_url', this.url);
+                    localStorage.setItem(this.passwordStorageKey, password);
                     document.getElementById('sync-password').value = '';
-                    this.statusText = 'Připojeno a synchronizováno';
+                    this.statusText = automatic ? 'Automaticky připojeno a synchronizováno' :
+                        'Připojeno a synchronizováno (heslo uloženo v prohlížeči)';
                 } catch (error) {
                     this.active = false;
                     this.keys = null;
-                    this.statusText = 'Chyba připojení: ' + error.message;
-                    await CustomDialog.alert(this.statusText, 'Synchronizace');
+                    this.statusText = (automatic ? 'Automatické připojení selhalo: ' : 'Chyba připojení: ') +
+                        error.message;
+                    if (!automatic) await CustomDialog.alert(this.statusText, 'Synchronizace');
                 } finally {
                     this.busy = false; this.ui();
                 }
@@ -2090,10 +2118,20 @@
                 } catch (error) { await CustomDialog.alert('Obnova se nezdařila: ' + error.message); }
                 finally { this.busy = false; this.ui(); }
             },
+            forgetSavedPassword() {
+                if (this.busy) return;
+                localStorage.removeItem(this.passwordStorageKey);
+                document.getElementById('sync-password').value = '';
+                this.active = false; this.keys = null; this.current = null; this.etag = null;
+                this.statusText = 'Uložené heslo odstraněno – pro připojení jej zadejte znovu';
+                this.ui();
+            },
             disconnect() {
+                if (this.busy) return;
                 this.active = false; this.keys = null; this.current = null; this.etag = null;
                 this.url = ''; this.group = '';
                 localStorage.removeItem('plavenky_sync_url');
+                localStorage.removeItem(this.passwordStorageKey);
                 document.getElementById('sync-url').value = '';
                 document.getElementById('sync-password').value = '';
                 this.statusText = 'Lokální režim – synchronizace odpojena';
@@ -2110,6 +2148,16 @@
                 document.getElementById('sync-handover').disabled = !primary || this.busy;
                 document.getElementById('sync-history').disabled = !primary || this.busy;
                 document.getElementById('sync-connect').disabled = this.busy;
+                const savedPassword = localStorage.getItem(this.passwordStorageKey);
+                const hasSavedPassword = !!(savedPassword && localStorage.getItem('plavenky_sync_url'));
+                document.getElementById('sync-forget-password').disabled = this.busy || !hasSavedPassword;
+                document.getElementById('sync-password-storage-status').textContent = hasSavedPassword
+                    ? 'Heslo je uložené v localStorage. Při příštím spuštění se použije automaticky. ' +
+                        'Pro změnu zadejte nové heslo.'
+                    : 'Heslo zatím není uložené. Po úspěšném připojení se uloží automaticky.';
+                document.getElementById('sync-password').placeholder = hasSavedPassword
+                    ? 'Heslo uloženo – zadejte nové pouze pro změnu'
+                    : 'Silná společná heslová fráze';
                 // Disable editing controls on backups; commit validation remains authoritative.
                 const readonly = (this.active && !primary) || (!this.active && !!localStorage.getItem('plavenky_sync_url'));
                 const selectors = [
