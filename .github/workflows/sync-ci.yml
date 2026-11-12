@@ -18,5 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: PHP syntax
         run: php -l sync.php
+      - name: Cryptography tests
+        run: node tests/sync-crypto.mjs
       - name: Integration tests
         run: node tests/sync-integration.mjs
