@@ -61,6 +61,15 @@ function canonicalGroup(): array {
     if (strlen($domain) > 253 || !preg_match('/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/D', $domain) ||
         str_contains($domain, '..')) fail(400, 'INVALID_DOMAIN', 'Invalid configured domain');
     $raw = $_SERVER['PATH_INFO'] ?? '';
+    // Some SAPIs (notably PHP's built-in server) omit PATH_INFO.
+    if ($raw === '') {
+        $uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $scriptPath = $_SERVER['SCRIPT_NAME'] ?? '/sync.php';
+        if (is_string($uriPath) && is_string($scriptPath) &&
+            str_starts_with($uriPath, $scriptPath . '/')) {
+            $raw = substr($uriPath, strlen($scriptPath));
+        }
+    }
     // Reject percent encoding entirely: no ambiguous double decoding, slash or dot segment aliases.
     if ($raw === '' || strlen($raw) > 400 || !str_starts_with($raw, '/') ||
         str_contains($raw, '%') || str_contains($raw, chr(92)) || str_contains($raw, chr(0))) {
