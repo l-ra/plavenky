@@ -115,7 +115,7 @@ try {
   function makeClient(chipsInitial = []) {
     const elements = new Map();
     for (const id of ['sync-url','sync-password','sync-status','sync-refresh','sync-takeover',
-      'sync-handover','sync-history','sync-connect','sync-disconnect']) {
+      'sync-handover','sync-history','sync-connect','sync-disconnect','analytics-optin']) {
       elements.set(id,{value:'',disabled:false,textContent:'',addEventListener(){}});
     }
     elements.get('sync-url').value=url;
@@ -127,7 +127,7 @@ try {
       localStorage:{getItem(k){return store.get(k)??null;},setItem(k,v){store.set(k,String(v));},removeItem(k){store.delete(k);}},
       Storage:{set(k,v){store.set(k,JSON.stringify(v));}},
       chips:JSON.parse(JSON.stringify(chipsInitial)),employees:[],borrowings:[],
-      clearPendingBackupChanges(){},renderChips(){},renderEmployees(){},renderBorrowings(){},
+      Analytics:{enabled:false,loadConfig(){}},clearPendingBackupChanges(){},renderChips(){},renderEmployees(){},renderBorrowings(){},
       updateDataStats(){},updateMonthsOverview(){},setInterval(){return 1;},
       CustomDialog:{async confirm(){return true;},async alert(msg){sandbox.lastAlert=msg;},async prompt(){return null;}},
       console
